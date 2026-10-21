@@ -153,8 +153,25 @@ details.alt .talk { margin-top: 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
 th { font-size: 12.5px; color: var(--sub); font-weight: 500; }
+th.num { text-align: right; }
 td.num { text-align: right; }
 .note { font-size: 12.5px; color: var(--sub); }
+td small { display: block; font-size: 11.5px; color: var(--sub); white-space: normal; }
+table.cost td:first-child { white-space: normal; min-width: 180px; }
+tr.ours td { background: var(--accent-wash); }
+tr.sum td { font-weight: 700; border-top: 2px solid var(--rule); }
+.col ul:not(.tasks) { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+.bars { display: grid; gap: 10px; padding-top: 6px; }
+.bar-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 13px; }
+@media (max-width: 560px) { .bar-row { grid-template-columns: 96px minmax(0, 1fr); } }
+.bar-row .track { position: relative; height: 14px; background: var(--ground); border-radius: 999px; }
+.bar-row .track i { position: absolute; top: 0; bottom: 0; background: var(--sub); opacity: .55; border-radius: 999px; min-width: 6px; }
+.bar-row.ours span { color: var(--accent-text); font-weight: 700; }
+.bar-row.ours .track i { background: var(--accent); opacity: 1; }
+.bar-row.axis .track { background: none; height: 16px; border-top: 1px solid var(--rule); border-radius: 0; margin-right: 24px; }
+.bar-row.axis em { position: absolute; top: 2px; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--sub); white-space: nowrap; }
+.bar-row.axis em:first-child { transform: none; }
+.bars .bar-row:not(.axis) .track { margin-right: 24px; }
 
 .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: s; }
 @media (max-width: 720px) { .steps { grid-template-columns: minmax(0, 1fr); } }
@@ -178,67 +195,11 @@ footer.end h2 { font-size: 22px; }
 (() => {
   const D = window.__PROPOSAL__;
   if (!D) return;
-  const P = D.proposal || {};
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const store = D.account || 'お店';
-  const persona = P.persona || { name: D.first_friend || 'さくら' };
-  const nameOf = (t) => String(t || '').replaceAll('{name}', persona.name || 'お客さま');
+  const {
+    P, store, persona, nameOf, esc, toMin, when, whoOf, personaChoice, events, tagsAt, bubbles, follow, groups, perPerson,
+  } = window.LineModel(D);
   if (P.accent && /^#[0-9a-f]{3,8}$/i.test(P.accent)) document.documentElement.style.setProperty('--accent', P.accent);
   document.title = `${store} LINE活用のご提案`;
-
-  // ---------- データの読み替え ----------
-  const toMin = (v) => {
-    const s = String(v ?? '0').replace(/\s/g, '');
-    if (/^\d+$/.test(s)) return Number(s);
-    const m = s.match(/^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/);
-    return m ? (Number(m[1] || 0) * 1440 + Number(m[2] || 0) * 60 + Number(m[3] || 0)) : 0;
-  };
-  const when = (min) => {
-    if (min === 0) return ['友だち追加の直後', ''];
-    const d = min / 1440;
-    if (Number.isInteger(d)) {
-      if (d === 1) return ['翌日', ''];
-      if (d === 7) return ['1週間後', ''];
-      if (d === 14) return ['2週間後', ''];
-      if (d % 30 === 0) return [`${d / 30}か月後`, ''];
-      if (d > 30) return [`${d}日後`, `約${Math.round(d / 30 * 2) / 2}か月`];
-      return [`${d}日後`, ''];
-    }
-    if (min % 60 === 0) return [`${min / 60}時間後`, ''];
-    return [`${min}分後`, ''];
-  };
-  const tagDefs = Object.fromEntries((D.tags || []).map((t) => [t.name, t]));
-  const choiceLabel = {};
-  const choiceReply = {};
-  (D.scenarios || []).forEach((sc) => (sc.steps || []).forEach((st) => (st.choices || []).forEach((c) => {
-    if (c.tag) { choiceLabel[c.tag] = c.label; choiceReply[c.tag] = c.reply; }
-  })));
-  const whoOf = (tag) => tagDefs[tag]?.who || (choiceLabel[tag] ? `「${choiceLabel[tag]}」を選んだ人` : `「${tag}」の人`);
-  const personaChoice = persona.choice_tag;
-  const events = (P.story || []).map((e) => ({ min: toMin(e.after), text: e.text, label: e.label || 'お客さまの行動', adds: e.adds_tag }));
-  // その時点でペルソナが持っているタグ（選んだ興味＋それより前の行動）。同じ時刻の行動は、メッセージを受け取ったあとに起きたものとして扱う
-  const tagsAt = (m) => new Set([personaChoice, ...(persona.tags || []), ...events.filter((e) => e.min < m && e.adds).map((e) => e.adds)].filter(Boolean));
-
-  const bubbles = (st, opts = {}) => {
-    let html = `<div class="b">${esc(nameOf(st.text))}</div>`;
-    if (st.choices?.length) {
-      html += `<div class="chips">${st.choices.map((c) => `<span class="${c.tag === personaChoice && opts.pick ? 'on' : ''}">${esc(c.label)}</span>`).join('')}</div>`;
-      const picked = st.choices.find((c) => c.tag === personaChoice);
-      if (picked && opts.pick) {
-        html += `<div class="b me">${esc(picked.label)}</div>`;
-        if (picked.reply) html += `<div class="b">${esc(nameOf(picked.reply))}</div>`;
-      }
-    }
-    return html;
-  };
-
-  const follow = (D.scenarios || []).find((s) => s.trigger === 'follow') || (D.scenarios || [])[0] || { steps: [] };
-  const groups = new Map();
-  (follow.steps || []).forEach((st) => {
-    const m = toMin(st.after);
-    if (!groups.has(m)) groups.set(m, []);
-    groups.get(m).push(st);
-  });
 
   // ---------- ヒーロー ----------
   const first = groups.get(0) || [];
@@ -358,34 +319,68 @@ footer.end h2 { font-size: 22px; }
       <div class="cards">${cards.map(([h, p, ex]) => `<div class="card"><h3>${h}</h3><p>${p}</p>${ex ? `<div class="ex">${ex}</div>` : ''}</div>`).join('')}</div>
     </section>`;
 
-  // ---------- 手間と費用 ----------
-  const perPerson = (follow.steps || []).filter((st) => toMin(st.after) > 0 && (!st.only_tag || st.only_tag === personaChoice)).length;
-  const c = P.cost || {};
-  const bpm = c.broadcasts_per_month ?? 2;
-  const sizes = c.friends || [100, 300, 1000];
-  const plan = (n) => n <= 200 ? ['コミュニケーション', '0円'] : n <= 5000 ? ['ライト', '5,000円'] : n <= 30000 ? ['スタンダード', '15,000円'] : ['スタンダード＋追加', '15,000円〜'];
-  const costRows = sizes.map((f) => {
-    const newbies = Math.round(f * (c.new_ratio ?? 0.1));
-    const msgs = f * bpm + newbies * perPerson;
-    const [pn, pf] = plan(msgs);
-    return `<tr><td class="num">${f.toLocaleString()}人</td><td class="num">${msgs.toLocaleString()}通</td><td>${pn}</td><td class="num">${pf}</td></tr>`;
-  }).join('');
-  const work = `
+  // ---------- 費用の比較とランニングコスト ----------
+  const { yen, man } = window.LinePricing;
+  const F = window.LinePricing.build(P, perPerson);
+  const pct = (n) => `${(n / F.max) * 100}%`;
+  const diff = (r) => {
+    if (!F.ours || r === F.ours) return '';
+    const lo = r.total[0] - F.ours.total[0];
+    const hi = r.total[1] - F.ours.total[0];
+    if (lo >= 0) return `今回より ${man(lo)}〜${man(hi)} 高い`;
+    if (hi <= 0) return `今回より ${man(-hi)}〜${man(-lo)} 安い`;
+    return `今回より ${man(-lo)}安い〜${man(hi)}高い`;
+  };
+  const price = (r, k) => r[k][0] === r[k][1] ? yen(r[k][0]) : `${yen(r[k][0])}〜${yen(r[k][1])}`;
+  const list = (items) => `<ul>${(items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  const pr = F.pr;
+  const compareCost = `
     <section>
-      <header><p class="eyebrow">運用のイメージ</p><h2>お店の手間と、費用の目安</h2></header>
+      <header><p class="eyebrow">費用</p><h2>一般的なLINE構築との比較（${F.years}年間）</h2>
+        <p class="lead">LINE構築は「構築費＋配信ツールの月額＋（頼むなら）運用代行費」がかかります。今回のご提案は配信ツールの月額がなく、保守と改善提案を月額にまとめています。</p></header>
+      <div class="col">
+        <div class="table-wrap"><table class="cost">
+          <thead><tr><th>頼み方</th><th>初期費用</th><th>毎月</th><th>${F.years}年間の総額</th>${F.ours ? '<th>今回との差</th>' : ''}</tr></thead>
+          <tbody>${F.rows.map((r) => `<tr class="${r === F.ours ? 'ours' : ''}"><td><b>${esc(r.name)}</b><small>${esc(r.note || '')}</small></td><td class="num">${price(r, 'initial')}</td><td class="num">${price(r, 'monthly')}</td><td class="num">${r.total[0] === r.total[1] ? man(r.total[0]) : `${man(r.total[0])}〜${man(r.total[1])}`}</td>${F.ours ? `<td>${diff(r)}</td>` : ''}</tr>`).join('')}</tbody>
+        </table></div>
+        <div class="bars" aria-label="${F.years}年間の総額の比較">
+          ${F.rows.map((r) => `<div class="bar-row ${r === F.ours ? 'ours' : ''}"><span>${esc(r.short || r.name)}</span><div class="track"><i style="left:${r.total[0] === r.total[1] ? 0 : pct(r.total[0])};width:${r.total[0] === r.total[1] ? pct(r.total[0]) : `calc(${pct(r.total[1])} - ${pct(r.total[0])})`}"></i></div></div>`).join('')}
+          <div class="bar-row axis"><span></span><div class="track"><em style="left:0">0</em><em style="left:50%">${man(F.max / 2)}</em><em style="left:100%">${man(F.max)}</em></div></div>
+        </div>
+        <p class="note">${esc(F.source)} 幅のある棒は「安い場合〜高い場合」。LINEの月額料金はどの頼み方でも同じようにかかるため含めていません。${F.ours ? '' : '今回のご提案の金額は proposal.pricing に入れると表示されます。'}</p>
+      </div>
+      ${F.ours ? `<div class="split">
+        <div class="col"><h3>初期費用 ${yen(pr.initial)} に含まれるもの</h3>${list(pr.initial_includes)}</div>
+        <div class="col"><h3>含まれないもの</h3>${list(pr.excludes)}</div>
+      </div>` : ''}
+    </section>`;
+
+  const running = `
+    <section>
+      <header><p class="eyebrow">納品後</p><h2>始めたあとにかかるお金と手間</h2>
+        <p class="lead">毎月かかるのは「LINEの月額料金」と「保守費」だけです。LINEの料金は友だちが増えて配信数が増えると上がります。</p></header>
+      <div class="col">
+        <div class="table-wrap"><table>
+          <thead><tr><th></th>${F.running.map((r) => `<th class="num">友だち${r.friends.toLocaleString()}人</th>`).join('')}</tr></thead>
+          <tbody>
+            <tr><td>月の配信数</td>${F.running.map((r) => `<td class="num">${r.msgs.toLocaleString()}通</td>`).join('')}</tr>
+            <tr><td>LINEの月額料金<small>お店が直接お支払い</small></td>${F.running.map((r) => `<td class="num">${yen(r.plan.fee)}<small>${r.plan.name}</small></td>`).join('')}</tr>
+            ${F.ours ? `<tr><td>保守費</td>${F.running.map(() => `<td class="num">${yen(pr.monthly)}</td>`).join('')}</tr>` : ''}
+            <tr><td>サーバー代</td>${F.running.map(() => `<td class="num">${esc(pr.server || '0円')}</td>`).join('')}</tr>
+            <tr class="sum"><td>毎月の合計</td>${F.running.map((r) => `<td class="num">${yen(r.total)}</td>`).join('')}</tr>
+          </tbody>
+        </table></div>
+        <p class="note">月${F.bpm}回のお知らせと、新しく友だちになった方（全体の約${Math.round(F.ratio * 100)}%）への自動配信（1人約${perPerson}通）で試算。自動の返事は無料なので含みません。LINEの料金は税別で、改定されることがあります。${esc(pr.server_note || '')}</p>
+      </div>
       <div class="split">
         <div class="col"><h3>お店がやること</h3><ul class="tasks">${(P.tasks || [
           { when: '毎日', what: '自動で返せない質問に、手の空いたときに返信' },
           { when: '月1回', what: 'お知らせの内容を確認して送信（文面の下書きはこちらで用意）' },
         ]).map((t) => `<li><b>${esc(t.when)}</b><span>${esc(t.what)}</span></li>`).join('')}</ul></div>
-        <div class="col"><h3>LINEの月額料金の目安</h3>
-          <div class="table-wrap"><table><thead><tr><th>友だち数</th><th>月の配信数</th><th>LINEのプラン</th><th>月額（税別）</th></tr></thead><tbody>${costRows}</tbody></table></div>
-          <p class="note">月${bpm}回のお知らせと、新しく友だちになった方（全体の約${Math.round((c.new_ratio ?? 0.1) * 100)}%）への自動配信（1人約${perPerson}通）で試算。自動の返事は無料なので含みません。${esc(c.note || '')}</p>
-        </div>
+        <div class="col"><h3>保守でこちらがやること</h3>${list(pr.monthly_includes || ['（proposal.pricing.monthly_includes に保守の内容を書いてください）'])}</div>
       </div>
     </section>`;
 
-  // ---------- 始めるまで ----------
   const flow = `
     <section>
       <header><p class="eyebrow">始めるまで</p><h2>${esc(P.lead_time || '2週間ほどで始められます')}</h2></header>
@@ -404,6 +399,6 @@ footer.end h2 { font-size: 22px; }
       ${P.proposer ? `<p class="from">ご提案：${esc(P.proposer)}</p>` : ''}
     </footer>`;
 
-  document.getElementById('page').innerHTML = hero + compare + journey + qa + can + work + flow + end;
+  document.getElementById('page').innerHTML = hero + compare + journey + qa + can + compareCost + running + flow + end;
 })();
 </script>
