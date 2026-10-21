@@ -7,6 +7,8 @@
 出力:
   <slug>.sql        … line-cloudflare の D1 に流し込む設計データ（初期構築用）
   <slug>-demo.html  … クライアントに見せられる動くデモ（Artifact としてそのまま公開できる）
+  <slug>-proposal.html … クライアント向けの提案ページ（お客さまの体験・自動の返事・できること・費用の比較・納品後のコスト）
+  <slug>-slides.html   … 同じ内容の16:9スライド（商談で画面共有して使う）
 
 標準ライブラリだけで動く。設計にLINEの制限違反があればエラーで止まる。
 """
@@ -18,6 +20,13 @@ import sys
 import urllib.request
 from pathlib import Path
 
+ASSETS = Path(__file__).resolve().parent.parent / 'assets'
+PROPOSAL_MARKER = '<!--LINE_PROPOSAL-->'
+# 提案ページとスライド（同じ design.json から作る）
+PROPOSAL_OUTPUTS = (
+    ('proposal-template.html', 'proposal', 'LINE活用のご提案'),
+    ('slides-template.html', 'slides', 'LINE活用のご提案（スライド）'),
+)
 DEFAULT_TEMPLATE = 'https://raw.githubusercontent.com/hituji4530/atogaki-assets/main/line-cloudflare/demo-template.html'
 MARKER = '<!--LINE_DESIGN-->'
 
@@ -193,6 +202,16 @@ def main():
     if design.get('account'):
         html = html.replace('<title>LINE配信ラボ</title>', f'<title>{htmllib.escape(design["account"])} LINE設計</title>', 1)
 
+    proposal_json = json.dumps(design, ensure_ascii=False).replace('<', '\\u003c')
+    libs = ''.join(f'<script>{(ASSETS / name).read_text(encoding="utf-8")}</script>\n' for name in ('model.js', 'pricing.js'))
+    proposals = {}
+    for template_name, kind, title in PROPOSAL_OUTPUTS:
+        page = (ASSETS / template_name).read_text(encoding='utf-8')
+        page = page.replace(PROPOSAL_MARKER, f'<script>window.__PROPOSAL__ = {proposal_json};</script>\n{libs}', 1)
+        if design.get('account'):
+            page = page.replace(f'<title>{title}</title>', f'<title>{htmllib.escape(design["account"])} {title}</title>', 1)
+        proposals[kind] = page
+
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     slug = args.slug or Path(args.design).stem
@@ -200,6 +219,13 @@ def main():
     (out / f'{slug}-demo.html').write_text(html, encoding='utf-8')
     print(f'OK: {out / (slug + ".sql")}')
     print(f'OK: {out / (slug + "-demo.html")}')
+    for kind, page in proposals.items():
+        (out / f'{slug}-{kind}.html').write_text(page, encoding='utf-8')
+        print(f'OK: {out / f"{slug}-{kind}.html"}')
+    if not design.get('proposal'):
+        print('注意: proposal がないので、提案ページとスライドは最低限の内容です（SKILL.md の 3-1b を参照）')
+    elif not (design['proposal'].get('pricing') or {}).get('initial'):
+        print('注意: proposal.pricing（初期費用・月額）がないので、費用の比較に今回の金額が出ません')
     for w in warnings:
         print(f'注意: {w}')
 

@@ -1,0 +1,404 @@
+<title>LINE活用のご提案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<!--LINE_PROPOSAL-->
+<style>
+/* レイアウト：1カラムの読み物。章ごとに「お客さま側の画面」と「お店側の説明」を並べ、狭い画面では縦に積む */
+:root {
+  --ground: #f4f6f2;
+  --paper: #ffffff;
+  --ink: #23292a;
+  --sub: #5c6664;
+  --rule: #dfe5e0;
+  --accent: #2f7d68;
+  --accent-ink: #ffffff;
+  --accent-text: var(--accent);
+  --accent-wash: color-mix(in srgb, var(--accent) 12%, var(--paper));
+  --sun: #b7791f;
+  --sun-wash: #fbf1df;
+  --talk: #c3d1dc;
+  --bubble: #ffffff;
+  --bubble-me: #a3e47f;
+  --bubble-ink: #23292a;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #151a19; --paper: #1d2423; --ink: #e7ecea; --sub: #a1aca9; --rule: #303a38;
+    --accent-wash: color-mix(in srgb, var(--accent) 22%, var(--paper));
+    --sun: #e6b05c; --sun-wash: #372c1b;
+    --talk: #26323b; --bubble: #313d46; --bubble-me: #417a2c; --bubble-ink: #edf2ef;
+    --accent-text: color-mix(in srgb, var(--accent) 55%, #ffffff);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #151a19; --paper: #1d2423; --ink: #e7ecea; --sub: #a1aca9; --rule: #303a38;
+  --accent-wash: color-mix(in srgb, var(--accent) 22%, var(--paper));
+  --sun: #e6b05c; --sun-wash: #372c1b;
+  --talk: #26323b; --bubble: #313d46; --bubble-me: #417a2c; --bubble-ink: #edf2ef;
+  --accent-text: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--ground); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.8; }
+.page {
+  max-width: 1040px; margin: 0 auto;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 72px;
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; word-break: auto-phrase; font-family: var(--font-display); font-weight: 700; }
+p { margin: 0; }
+a { color: var(--accent-text); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; color: var(--accent-text); font-weight: 700; }
+.lead { color: var(--sub); max-width: 62ch; }
+section { display: grid; gap: 24px; min-width: 0; }
+section > header { display: grid; gap: 8px; }
+section h2 { font-size: clamp(22px, 3.2vw, 28px); line-height: 1.4; }
+
+/* ヒーロー */
+.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+@media (max-width: 820px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.hero-copy { display: grid; gap: 18px; }
+.hero h1 { font-size: clamp(28px, 4.6vw, 44px); line-height: 1.35; letter-spacing: .01em; }
+.hero h1 em { font-style: normal; background: linear-gradient(transparent 62%, var(--sun-wash) 62%); }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+.btn:hover { filter: brightness(1.06); }
+.cta small { color: var(--sub); font-size: 13px; }
+
+/* スマホのトーク画面 */
+.phone { background: var(--paper); border: 1px solid var(--rule); border-radius: 28px; padding: 10px; max-width: 360px; width: 100%; justify-self: center; }
+.phone-top { display: flex; align-items: center; gap: 8px; padding: 6px 10px 10px; font-weight: 700; font-size: 14px; }
+.phone-top .dot { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 12px; }
+.talk { background: var(--talk); border-radius: 18px; padding: 14px 12px; display: grid; gap: 8px; align-content: start; }
+.b { max-width: 86%; padding: 8px 12px; border-radius: 16px; background: var(--bubble); color: var(--bubble-ink); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; justify-self: start; border-top-left-radius: 4px; }
+.b.me { background: var(--bubble-me); justify-self: end; border-top-left-radius: 16px; border-top-right-radius: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { border: 1px solid var(--accent); color: var(--accent-text); background: var(--paper); border-radius: 999px; padding: 2px 12px; font-size: 12.5px; }
+.chips span.on { background: var(--accent); color: var(--accent-ink); }
+.sysline { justify-self: center; font-size: 11px; color: var(--bubble-ink); background: color-mix(in srgb, var(--paper) 60%, transparent); border-radius: 999px; padding: 1px 10px; }
+
+/* いま／これから */
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 720px) { .compare { grid-template-columns: minmax(0, 1fr); } }
+.col { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 20px 22px; display: grid; gap: 12px; align-content: start; }
+.col h3 { font-size: 17px; }
+.col ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.col li { padding-left: 22px; position: relative; }
+.col li::before { content: ""; position: absolute; left: 4px; top: .7em; width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
+.col.after { border-color: var(--accent-text); background: var(--accent-wash); }
+.col.after li::before { background: var(--accent); }
+
+/* お客さまの1か月 */
+.persona { display: flex; gap: 14px; align-items: center; background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 14px 18px; }
+.persona .face { width: 44px; height: 44px; border-radius: 50%; background: var(--sun-wash); color: var(--sun); display: grid; place-items: center; font-family: var(--font-display); font-size: 18px; flex: none; }
+.persona p { color: var(--sub); font-size: 14px; }
+.timeline { display: grid; gap: 0; position: relative; }
+.tl-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 20px; padding: 18px 0; border-top: 1px dashed var(--rule); }
+.tl-row:first-child { border-top: 0; }
+@media (max-width: 640px) { .tl-row { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+.tl-when { font-family: var(--font-display); font-weight: 700; color: var(--accent-text); font-size: 16px; }
+.tl-when small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--sub); font-size: 12px; }
+.tl-body { display: grid; gap: 10px; min-width: 0; }
+.tl-body .talk { max-width: 460px; }
+.who { display: inline-flex; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }
+.who span { background: var(--accent-wash); color: var(--accent-text); border-radius: 6px; padding: 1px 8px; }
+.who span.not { background: var(--sun-wash); color: var(--sun); }
+.why { font-size: 13.5px; color: var(--sub); }
+.event { display: flex; gap: 10px; align-items: baseline; background: var(--sun-wash); color: var(--ink); border-radius: 12px; padding: 10px 14px; font-size: 14px; max-width: 460px; }
+.event b { color: var(--sun); white-space: nowrap; }
+details.alt { max-width: 460px; }
+details.alt summary { cursor: pointer; font-size: 13px; color: var(--sub); }
+details.alt .talk { margin-top: 8px; }
+
+/* こう送られたら */
+.qa { display: grid; gap: 14px; }
+.qa-row { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1.4fr); gap: 12px; align-items: center; background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 14px 16px; }
+@media (max-width: 640px) { .qa-row { grid-template-columns: minmax(0, 1fr); } .qa-row .arrow { transform: rotate(90deg); justify-self: start; } }
+.qa-row .arrow { color: var(--sub); text-align: center; font-size: 18px; }
+.qa-row .b { max-width: 100%; }
+.qa-row .b:not(.me) { background: var(--ground); border: 1px solid var(--rule); }
+.qa-row .side { display: grid; gap: 6px; }
+.qa-row .tag { font-size: 12px; color: var(--sub); }
+.qa-row .tag b { color: var(--accent-text); font-weight: 500; }
+
+/* できること */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; }
+.card h3 { font-size: 16px; }
+.card p { font-size: 14px; color: var(--sub); }
+.card .ex { font-size: 13.5px; color: var(--ink); background: var(--ground); border-radius: 10px; padding: 8px 12px; }
+.card .ex b { color: var(--accent-text); font-weight: 700; }
+
+.richmenu { display: grid; gap: 4px; background: var(--rule); border-radius: 12px; overflow: hidden; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); }
+.richmenu div { background: var(--accent-wash); color: var(--ink); font-weight: 700; font-size: 13px; display: grid; place-items: center; text-align: center; padding: 14px 6px; min-height: 58px; }
+
+/* 手間と費用 */
+.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 720px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.tasks { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.tasks li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; font-size: 14px; }
+.tasks li b { color: var(--accent-text); font-weight: 700; font-size: 13px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-size: 12.5px; color: var(--sub); font-weight: 500; }
+th.num { text-align: right; }
+td.num { text-align: right; }
+.note { font-size: 12.5px; color: var(--sub); }
+td small { display: block; font-size: 11.5px; color: var(--sub); white-space: normal; }
+table.cost td:first-child { white-space: normal; min-width: 180px; }
+tr.ours td { background: var(--accent-wash); }
+tr.sum td { font-weight: 700; border-top: 2px solid var(--rule); }
+.col ul:not(.tasks) { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+.bars { display: grid; gap: 10px; padding-top: 6px; }
+.bar-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 13px; }
+@media (max-width: 560px) { .bar-row { grid-template-columns: 96px minmax(0, 1fr); } }
+.bar-row .track { position: relative; height: 14px; background: var(--ground); border-radius: 999px; }
+.bar-row .track i { position: absolute; top: 0; bottom: 0; background: var(--sub); opacity: .55; border-radius: 999px; min-width: 6px; }
+.bar-row.ours span { color: var(--accent-text); font-weight: 700; }
+.bar-row.ours .track i { background: var(--accent); opacity: 1; }
+.bar-row.axis .track { background: none; height: 16px; border-top: 1px solid var(--rule); border-radius: 0; margin-right: 24px; }
+.bar-row.axis em { position: absolute; top: 2px; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--sub); white-space: nowrap; }
+.bar-row.axis em:first-child { transform: none; }
+.bars .bar-row:not(.axis) .track { margin-right: 24px; }
+
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: s; }
+@media (max-width: 720px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.steps li { list-style: none; background: var(--paper); border: 1px solid var(--rule); border-radius: 16px; padding: 16px 18px; display: grid; gap: 6px; counter-increment: s; align-content: start; }
+.steps li::before { content: counter(s); font-family: var(--font-display); font-weight: 700; color: var(--accent-text); font-size: 20px; }
+.steps li b { font-size: 15px; }
+.steps li span { font-size: 13.5px; color: var(--sub); }
+.steps { margin: 0; padding: 0; }
+
+footer.end { display: grid; gap: 14px; justify-items: start; background: var(--accent-wash); border-radius: 20px; padding: 28px; }
+footer.end h2 { font-size: 22px; }
+.from { font-size: 13px; color: var(--sub); }
+.missing { padding: 80px 0; text-align: center; color: var(--sub); }
+</style>
+
+<div class="page" id="page" lang="ja">
+  <p class="missing" id="missing">提案データが見つかりません。line-builder スキルで生成してください。</p>
+</div>
+
+<script>
+(() => {
+  const D = window.__PROPOSAL__;
+  if (!D) return;
+  const {
+    P, store, persona, nameOf, esc, toMin, when, whoOf, personaChoice, events, tagsAt, bubbles, follow, groups, perPerson,
+  } = window.LineModel(D);
+  if (P.accent && /^#[0-9a-f]{3,8}$/i.test(P.accent)) document.documentElement.style.setProperty('--accent', P.accent);
+  document.title = `${store} LINE活用のご提案`;
+
+  // ---------- ヒーロー ----------
+  const first = groups.get(0) || [];
+  const hero = `
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">${esc(store)}さまへのご提案</p>
+        <h1>${esc(P.headline || `${store}のLINEで、お客さまとの距離が変わります`).replace(/「(.+?)」/, '<em>「$1」</em>')}</h1>
+        <p class="lead">${esc(P.subhead || '')}</p>
+        ${P.demo_url ? `<div class="cta"><a class="btn" href="${esc(P.demo_url)}" target="_blank" rel="noopener">お客さまの画面を触ってみる →</a><small>スマホでも開けます</small></div>` : ''}
+      </div>
+      <div class="phone" aria-label="友だち追加直後のトーク画面の例">
+        <div class="phone-top"><span class="dot">${esc(store.slice(0, 1))}</span>${esc(store)}</div>
+        <div class="talk"><span class="sysline">友だち追加しました</span>${first.map((st) => bubbles(st, { pick: true })).join('')}</div>
+      </div>
+    </section>`;
+
+  // ---------- いま と これから ----------
+  const compare = (P.before?.length || P.after?.length) ? `
+    <section>
+      <header><p class="eyebrow">変わること</p><h2>いまと、LINEを始めたあと</h2></header>
+      <div class="compare">
+        <div class="col"><h3>いま</h3><ul>${(P.before || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+        <div class="col after"><h3>LINEを始めたあと</h3><ul>${(P.after || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      </div>
+    </section>` : '';
+
+  // ---------- お客さまの1か月 ----------
+  const rows = [];
+  const mins = [...new Set([...groups.keys(), ...events.map((e) => e.min)])].sort((a, b) => a - b);
+  for (const m of mins) {
+    const [w, sub] = when(m);
+    const parts = [];
+    // 友だち追加のきっかけ（直後の行動）は、メッセージより先に置く
+    if (m === 0) for (const e of events.filter((e) => e.min === 0)) parts.push(`<div class="event"><b>${esc(e.label)}</b><span>${esc(nameOf(e.text))}</span></div>`);
+    const steps = groups.get(m) || [];
+    if (steps.length) {
+      // 出し分け：ペルソナに届くものを主に、ほかは「ほかの人には」に畳む
+      const has = tagsAt(m);
+      const mine = steps.filter((st) => !st.only_tag || has.has(st.only_tag));
+      const others = steps.filter((st) => st.only_tag && !has.has(st.only_tag));
+      const shown = mine.length ? mine : [others.shift()];
+      const skipped = (st) => st.except_tag && has.has(st.except_tag);
+      const who = (st) => {
+        const tags = [];
+        if (st.only_tag) tags.push(`<span>${esc(whoOf(st.only_tag))}に</span>`);
+        if (st.except_tag) tags.push(`<span class="not">${esc(whoOf(st.except_tag))}には送りません</span>`);
+        if (!tags.length) tags.push('<span>全員に</span>');
+        return `<div class="who">${tags.join('')}</div>`;
+      };
+      if (m === 0) {
+        parts.push(`<div class="who"><span>全員に</span><span>返信なので無料</span></div><div class="talk">${steps.map((st) => bubbles(st, { pick: true })).join('')}</div>`);
+      } else {
+        shown.forEach((st) => parts.push(skipped(st)
+          ? `${who(st)}<p class="why">${esc(persona.name)}さんには届きません（${esc(whoOf(st.except_tag))}なので、しつこい案内を自動で止めます）</p>`
+          : `${who(st)}<div class="talk">${bubbles(st)}</div>${st.purpose ? `<p class="why">ねらい：${esc(st.purpose)}</p>` : ''}`));
+      }
+      if (m !== 0 && others.length) {
+        parts.push(`<details class="alt"><summary>ほかを選んだ人には、こう届きます（${others.length}通り）</summary>${others.map((st) => `${who(st)}<div class="talk">${bubbles(st)}</div>`).join('')}</details>`);
+      }
+    }
+    for (const e of events.filter((e) => e.min === m && m !== 0)) parts.push(`<div class="event"><b>${esc(e.label)}</b><span>${esc(nameOf(e.text))}</span></div>`);
+    rows.push(`<div class="tl-row"><div class="tl-when">${w}${sub ? `<small>${sub}</small>` : ''}</div><div class="tl-body">${parts.join('')}</div></div>`);
+  }
+  const journey = `
+    <section>
+      <header><p class="eyebrow">お客さまの体験</p><h2>${esc(persona.name)}さんの場合、こう届きます</h2>
+        <p class="lead">一度設定すれば、友だち追加した日から自動で届きます。選んだ内容や、予約したかどうかで、送る内容を変えられます。</p></header>
+      ${persona.profile ? `<div class="persona"><span class="face">${esc((persona.name || '?').slice(0, 1))}</span><div><b>${esc(persona.name)}さん</b><p>${esc(persona.profile)}</p></div></div>` : ''}
+      <div class="timeline">${rows.join('')}</div>
+    </section>`;
+
+  // ---------- こう送られたら ----------
+  const kws = D.keywords || [];
+  const qa = `
+    <section>
+      <header><p class="eyebrow">自動の返事</p><h2>こう送られたら、こう返します</h2>
+        <p class="lead">決まった言葉には、24時間すぐに自動で返事をします。返事は通数にカウントされないので無料です。</p></header>
+      <div class="qa">
+        ${kws.map((k) => `<div class="qa-row">
+          <div class="side"><span class="tag">お客さまが「${esc(k.keyword)}」${k.match === 'exact' ? 'と送ったとき' : 'を含む言葉を送ったとき'}</span><div class="b me">${esc(k.example || k.keyword)}</div></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="side"><span class="tag">自動の返事${k.tag ? `　<b>${esc(whoOf(k.tag))}として記録</b>` : ''}</span><div class="b">${esc(nameOf(k.reply || ''))}</div></div>
+        </div>`).join('')}
+        <div class="qa-row">
+          <div class="side"><span class="tag">それ以外の質問や相談</span><div class="b me">${esc(P.free_question || '今日の夕方って空いてますか？')}</div></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="side"><span class="tag">お店の人が返事</span><div class="b">${esc(P.free_answer || 'スタッフに通知が届き、手の空いたときにLINEで返信します。')}</div></div>
+        </div>
+      </div>
+    </section>`;
+
+  // ---------- できること ----------
+  const bc = D.broadcasts || [];
+  const allBc = bc.find((b) => !b.to || b.to === '全員');
+  const segBc = bc.find((b) => b.to && b.to !== '全員');
+  const exceptStep = (follow.steps || []).find((s) => s.except_tag);
+  const choiceStep = (follow.steps || []).find((s) => s.choices?.length);
+  const rm = D.richmenu || [];
+  const cards = [
+    ['決まった日に自動で届く', '友だち追加した日から数えて、翌日・3日後・1週間後…と自動で送ります。新しいお客さまが来るたびに、同じ流れが始まります。',
+      `${[...groups.keys()].filter((m) => m > 0).length}つのタイミングで配信`],
+    ['興味に合わせて出し分け', 'ボタンで選んでもらった内容を覚えて、その人に合うメッセージだけを送ります。',
+      choiceStep ? `選択肢：<b>${choiceStep.choices.map((c) => esc(c.label)).join('・')}</b>` : ''],
+    ['行動済みの人には送らない', '予約した人に「ご予約はこちら」を送り続けるような、しつこい配信を自動で止めます。',
+      exceptStep ? `<b>${esc(whoOf(exceptStep.except_tag))}</b>には案内を止める` : ''],
+    ['全員にお知らせ', '空き状況や新メニューを、友だち全員にまとめて送れます。',
+      allBc ? `例：<b>${esc(allBc.when)}</b>　${esc(allBc.idea)}` : ''],
+    ['絞り込んでお知らせ', '興味のある人だけに送れるので、通数（費用）もブロックも減ります。',
+      segBc ? `例：<b>${esc(segBc.when)}</b>　${esc(whoOf(segBc.to))}に${esc(segBc.idea)}` : ''],
+    ['いつでも押せるメニュー', 'トーク画面の下に、予約やクーポンのボタンを常に出しておけます。',
+      rm.length ? `<div class="richmenu" style="--cols:${rm.length > 4 ? 3 : 2}">${rm.map((r) => `<div>${esc(r.label)}</div>`).join('')}</div>` : ''],
+  ];
+  const can = `
+    <section>
+      <header><p class="eyebrow">お店からできること</p><h2>${esc(store)}のLINEでできること</h2></header>
+      <div class="cards">${cards.map(([h, p, ex]) => `<div class="card"><h3>${h}</h3><p>${p}</p>${ex ? `<div class="ex">${ex}</div>` : ''}</div>`).join('')}</div>
+    </section>`;
+
+  // ---------- 費用の比較とランニングコスト ----------
+  const { yen, man } = window.LinePricing;
+  const F = window.LinePricing.build(P, perPerson);
+  const pct = (n) => `${(n / F.max) * 100}%`;
+  const diff = (r) => {
+    if (!F.ours || r === F.ours) return '';
+    const lo = r.total[0] - F.ours.total[0];
+    const hi = r.total[1] - F.ours.total[0];
+    if (lo >= 0) return `今回より ${man(lo)}〜${man(hi)} 高い`;
+    if (hi <= 0) return `今回より ${man(-hi)}〜${man(-lo)} 安い`;
+    return `今回より ${man(-lo)}安い〜${man(hi)}高い`;
+  };
+  const price = (r, k) => r[k][0] === r[k][1] ? yen(r[k][0]) : `${yen(r[k][0])}〜${yen(r[k][1])}`;
+  const list = (items) => `<ul>${(items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  const pr = F.pr;
+  const compareCost = `
+    <section>
+      <header><p class="eyebrow">費用</p><h2>一般的なLINE構築との比較（${F.years}年間）</h2>
+        <p class="lead">LINE構築は「構築費＋配信ツールの月額＋（頼むなら）運用代行費」がかかります。今回のご提案は配信ツールの月額がなく、保守と改善提案を月額にまとめています。</p></header>
+      <div class="col">
+        <div class="table-wrap"><table class="cost">
+          <thead><tr><th>頼み方</th><th>初期費用</th><th>毎月</th><th>${F.years}年間の総額</th>${F.ours ? '<th>今回との差</th>' : ''}</tr></thead>
+          <tbody>${F.rows.map((r) => `<tr class="${r === F.ours ? 'ours' : ''}"><td><b>${esc(r.name)}</b><small>${esc(r.note || '')}</small></td><td class="num">${price(r, 'initial')}</td><td class="num">${price(r, 'monthly')}</td><td class="num">${r.total[0] === r.total[1] ? man(r.total[0]) : `${man(r.total[0])}〜${man(r.total[1])}`}</td>${F.ours ? `<td>${diff(r)}</td>` : ''}</tr>`).join('')}</tbody>
+        </table></div>
+        <div class="bars" aria-label="${F.years}年間の総額の比較">
+          ${F.rows.map((r) => `<div class="bar-row ${r === F.ours ? 'ours' : ''}"><span>${esc(r.short || r.name)}</span><div class="track"><i style="left:${r.total[0] === r.total[1] ? 0 : pct(r.total[0])};width:${r.total[0] === r.total[1] ? pct(r.total[0]) : `calc(${pct(r.total[1])} - ${pct(r.total[0])})`}"></i></div></div>`).join('')}
+          <div class="bar-row axis"><span></span><div class="track"><em style="left:0">0</em><em style="left:50%">${man(F.max / 2)}</em><em style="left:100%">${man(F.max)}</em></div></div>
+        </div>
+        <p class="note">${esc(F.source)} 幅のある棒は「安い場合〜高い場合」。LINEの月額料金はどの頼み方でも同じようにかかるため含めていません。${F.ours ? '' : '今回のご提案の金額は proposal.pricing に入れると表示されます。'}</p>
+      </div>
+      ${F.ours ? `<div class="split">
+        <div class="col"><h3>初期費用 ${yen(pr.initial)} に含まれるもの</h3>${list(pr.initial_includes)}</div>
+        <div class="col"><h3>含まれないもの</h3>${list(pr.excludes)}</div>
+      </div>` : ''}
+    </section>`;
+
+  const running = `
+    <section>
+      <header><p class="eyebrow">納品後</p><h2>始めたあとにかかるお金と手間</h2>
+        <p class="lead">毎月かかるのは「LINEの月額料金」と「保守費」だけです。LINEの料金は友だちが増えて配信数が増えると上がります。</p></header>
+      <div class="col">
+        <div class="table-wrap"><table>
+          <thead><tr><th></th>${F.running.map((r) => `<th class="num">友だち${r.friends.toLocaleString()}人</th>`).join('')}</tr></thead>
+          <tbody>
+            <tr><td>月の配信数</td>${F.running.map((r) => `<td class="num">${r.msgs.toLocaleString()}通</td>`).join('')}</tr>
+            <tr><td>LINEの月額料金<small>お店が直接お支払い</small></td>${F.running.map((r) => `<td class="num">${yen(r.plan.fee)}<small>${r.plan.name}</small></td>`).join('')}</tr>
+            ${F.ours ? `<tr><td>保守費</td>${F.running.map(() => `<td class="num">${yen(pr.monthly)}</td>`).join('')}</tr>` : ''}
+            <tr><td>サーバー代</td>${F.running.map(() => `<td class="num">${esc(pr.server || '0円')}</td>`).join('')}</tr>
+            <tr class="sum"><td>毎月の合計</td>${F.running.map((r) => `<td class="num">${yen(r.total)}</td>`).join('')}</tr>
+          </tbody>
+        </table></div>
+        <p class="note">月${F.bpm}回のお知らせと、新しく友だちになった方（全体の約${Math.round(F.ratio * 100)}%）への自動配信（1人約${perPerson}通）で試算。自動の返事は無料なので含みません。LINEの料金は税別で、改定されることがあります。${esc(pr.server_note || '')}</p>
+      </div>
+      <div class="split">
+        <div class="col"><h3>お店がやること</h3><ul class="tasks">${(P.tasks || [
+          { when: '毎日', what: '自動で返せない質問に、手の空いたときに返信' },
+          { when: '月1回', what: 'お知らせの内容を確認して送信（文面の下書きはこちらで用意）' },
+        ]).map((t) => `<li><b>${esc(t.when)}</b><span>${esc(t.what)}</span></li>`).join('')}</ul></div>
+        <div class="col"><h3>保守でこちらがやること</h3>${list(pr.monthly_includes || ['（proposal.pricing.monthly_includes に保守の内容を書いてください）'])}</div>
+      </div>
+    </section>`;
+
+  const flow = `
+    <section>
+      <header><p class="eyebrow">始めるまで</p><h2>${esc(P.lead_time || '2週間ほどで始められます')}</h2></header>
+      <ol class="steps">${(P.flow || [
+        { title: 'ヒアリング', text: 'お店の強み、よく受ける質問、増やしたいお客さまを伺います' },
+        { title: '設計と文面', text: '配信の流れと文面を作り、このページと動くデモでご確認いただきます' },
+        { title: 'LINEの準備', text: 'LINE公式アカウントの開設と、店内POP・QRコードの用意' },
+        { title: 'スタート', text: '公開後1か月は反応を見ながら文面を調整します' },
+      ]).map((s) => `<li><b>${esc(s.title)}</b><span>${esc(s.text)}</span></li>`).join('')}</ol>
+    </section>`;
+
+  const end = `
+    <footer class="end">
+      <h2>${esc(P.closing || 'まずは、お客さまの画面を触ってみてください')}</h2>
+      ${P.demo_url ? `<a class="btn" href="${esc(P.demo_url)}" target="_blank" rel="noopener">デモを開く →</a>` : ''}
+      ${P.proposer ? `<p class="from">ご提案：${esc(P.proposer)}</p>` : ''}
+    </footer>`;
+
+  document.getElementById('page').innerHTML = hero + compare + journey + qa + can + compareCost + running + flow + end;
+})();
+</script>

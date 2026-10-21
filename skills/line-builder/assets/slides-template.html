@@ -1,0 +1,359 @@
+<title>LINE活用のご提案（スライド）</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<!--LINE_PROPOSAL-->
+<style>
+/* レイアウト：16:9 のスライドを1枚ずつ表示。すべての寸法は --u（スライド幅の1%）の倍数で、画面幅に合わせて拡縮する。
+   狭い画面では、スライドを縦に並べて読み物として見せる */
+:root {
+  --ground: #e9ede8;
+  --paper: #ffffff;
+  --ink: #23292a;
+  --sub: #5c6664;
+  --rule: #dfe5e0;
+  --accent: #2f7d68;
+  --accent-ink: #ffffff;
+  --accent-text: var(--accent);
+  --accent-wash: color-mix(in srgb, var(--accent) 12%, var(--paper));
+  --sun: #b7791f;
+  --sun-wash: #fbf1df;
+  --talk: #c3d1dc;
+  --bubble: #ffffff;
+  --bubble-me: #a3e47f;
+  --bubble-ink: #23292a;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #111615; --paper: #1d2423; --ink: #e7ecea; --sub: #a1aca9; --rule: #303a38;
+    --accent-wash: color-mix(in srgb, var(--accent) 22%, var(--paper));
+    --accent-text: color-mix(in srgb, var(--accent) 55%, #ffffff);
+    --sun: #e6b05c; --sun-wash: #372c1b;
+    --talk: #26323b; --bubble: #313d46; --bubble-me: #417a2c; --bubble-ink: #edf2ef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #111615; --paper: #1d2423; --ink: #e7ecea; --sub: #a1aca9; --rule: #303a38;
+  --accent-wash: color-mix(in srgb, var(--accent) 22%, var(--paper));
+  --accent-text: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  --sun: #e6b05c; --sun-wash: #372c1b;
+  --talk: #26323b; --bubble: #313d46; --bubble-me: #417a2c; --bubble-ink: #edf2ef;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--font-body); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.stage {
+  height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.viewport { min-height: 0; display: grid; place-items: center; container-type: size; }
+.deck { width: min(100cqw, 100cqh * 16 / 9); container-type: inline-size; }
+.slide {
+  --u: 1cqw;
+  aspect-ratio: 16 / 9; width: 100%; overflow: hidden;
+  background: var(--paper); border-radius: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 4.4) calc(var(--u) * 5.4);
+  display: grid; grid-template-rows: auto minmax(0, 1fr); gap: calc(var(--u) * 2.4);
+  font-size: calc(var(--u) * 1.55); line-height: 1.7;
+}
+.deck .slide:not(.on) { display: none; }
+.controls { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 13px; color: var(--sub); }
+.controls button { border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 6px 16px; font: inherit; cursor: pointer; }
+.controls button:disabled { opacity: .4; cursor: default; }
+.controls .count { font-variant-numeric: tabular-nums; min-width: 56px; text-align: center; }
+
+/* 狭い画面：縦に並べる */
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  .stage { height: auto; display: block; }
+  .viewport { display: block; container-type: normal; }
+  .deck { width: 100%; display: grid; gap: 14px; container-type: normal; }
+  .deck .slide:not(.on) { display: grid; }
+  .slide { --u: 6.4px; aspect-ratio: auto; overflow: visible; padding: 24px 20px; border-radius: 14px; }
+  .controls { display: none; }
+}
+
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: 700; text-wrap: balance; word-break: auto-phrase; }
+p { margin: 0; }
+.head { display: grid; gap: calc(var(--u) * .5); }
+.eyebrow { font-size: calc(var(--u) * 1.1); letter-spacing: .1em; color: var(--accent-text); font-weight: 700; }
+.head h2 { font-size: calc(var(--u) * 3.1); line-height: 1.35; }
+.body { min-height: 0; display: grid; gap: calc(var(--u) * 2); align-content: start; }
+.sub { color: var(--sub); }
+.small { font-size: calc(var(--u) * 1.15); color: var(--sub); line-height: 1.6; }
+
+/* 表紙 */
+.cover { background: var(--accent); color: var(--accent-ink); grid-template-rows: minmax(0, 1fr) auto; }
+.cover .eyebrow { color: var(--accent-ink); opacity: .85; }
+.cover h1 { font-size: calc(var(--u) * 4.4); line-height: 1.32; max-width: 22ch; }
+.cover .lead { font-size: calc(var(--u) * 1.6); opacity: .9; max-width: 44ch; }
+.cover .top { display: grid; gap: calc(var(--u) * 2.2); align-content: center; }
+.cover .from { font-size: calc(var(--u) * 1.2); opacity: .85; }
+
+/* 2列 */
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--u) * 2.4); min-height: 0; }
+@media (max-width: 760px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { border: 1px solid var(--rule); border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 1.8) calc(var(--u) * 2); display: grid; gap: calc(var(--u) * 1); align-content: start; min-width: 0; }
+.box h3 { font-size: calc(var(--u) * 1.7); }
+.box.hl { border-color: var(--accent); background: var(--accent-wash); }
+.box ul { margin: 0; padding: 0; list-style: none; display: grid; gap: calc(var(--u) * .7); }
+.box li { padding-left: calc(var(--u) * 1.6); position: relative; }
+.box li::before { content: ""; position: absolute; left: calc(var(--u) * .3); top: .72em; width: calc(var(--u) * .6); height: calc(var(--u) * .6); border-radius: 50%; background: var(--rule); }
+.box.hl li::before { background: var(--accent); }
+
+/* トーク */
+.talk { background: var(--talk); border-radius: calc(var(--u) * 1.2); padding: calc(var(--u) * 1.2); display: grid; gap: calc(var(--u) * .6); align-content: start; }
+.b { max-width: 90%; padding: calc(var(--u) * .6) calc(var(--u) * 1); border-radius: calc(var(--u) * 1.2); border-top-left-radius: calc(var(--u) * .3); background: var(--bubble); color: var(--bubble-ink); font-size: calc(var(--u) * 1.15); line-height: 1.55; white-space: pre-wrap; word-break: break-word; justify-self: start; }
+.b.me { background: var(--bubble-me); justify-self: end; border-top-left-radius: calc(var(--u) * 1.2); border-top-right-radius: calc(var(--u) * .3); }
+.chips { display: flex; flex-wrap: wrap; gap: calc(var(--u) * .4); }
+.chips span { border: 1px solid var(--accent); color: var(--accent-text); background: var(--paper); border-radius: 999px; padding: 0 calc(var(--u) * .9); font-size: calc(var(--u) * 1.05); }
+.chips span.on { background: var(--accent); color: var(--accent-ink); }
+
+/* お客さまの1か月（横のタイムライン） */
+.journey { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: calc(var(--u) * 1.2); min-height: 0; }
+@media (max-width: 760px) { .journey { grid-template-columns: minmax(0, 1fr); } }
+.j { display: grid; gap: calc(var(--u) * .7); align-content: start; min-width: 0; }
+.j .when { font-family: var(--font-display); font-weight: 700; color: var(--accent-text); font-size: calc(var(--u) * 1.5); border-bottom: 2px solid var(--accent); padding-bottom: calc(var(--u) * .3); }
+.j .who { font-size: calc(var(--u) * 1); color: var(--sub); }
+.j .b { font-size: calc(var(--u) * 1.02); max-width: 100%; }
+.j .event { background: var(--sun-wash); border-radius: calc(var(--u) * .8); padding: calc(var(--u) * .6) calc(var(--u) * .9); font-size: calc(var(--u) * 1.02); }
+.j .event b { color: var(--sun); margin-right: .4em; }
+.j .skip { font-size: calc(var(--u) * 1.02); color: var(--sub); border: 1px dashed var(--rule); border-radius: calc(var(--u) * .8); padding: calc(var(--u) * .6) calc(var(--u) * .9); }
+
+/* こう送られたら */
+.qa { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--u) * 1.2); }
+@media (max-width: 760px) { .qa { grid-template-columns: minmax(0, 1fr); } }
+.qa .talk { grid-template-rows: auto auto auto; }
+.qa .lbl { font-size: calc(var(--u) * .95); color: var(--bubble-ink); opacity: .75; }
+
+/* できること */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--u) * 1.2); }
+@media (max-width: 760px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+.card { border: 1px solid var(--rule); border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 1.4) calc(var(--u) * 1.6); display: grid; gap: calc(var(--u) * .5); align-content: start; }
+.card h3 { font-size: calc(var(--u) * 1.45); }
+.card p { font-size: calc(var(--u) * 1.1); color: var(--sub); line-height: 1.6; }
+.card .ex { font-size: calc(var(--u) * 1.05); color: var(--accent-text); font-weight: 700; }
+
+/* 表とグラフ */
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: calc(var(--u) * 1.2); }
+th, td { text-align: left; padding: calc(var(--u) * .55) calc(var(--u) * .8); border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: calc(var(--u) * 1); color: var(--sub); font-weight: 500; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td small { display: block; font-size: calc(var(--u) * .9); color: var(--sub); }
+tr.ours td { background: var(--accent-wash); }
+tr.sum td { font-weight: 700; border-top: 2px solid var(--ink); }
+.table-wrap { overflow-x: auto; }
+.bars { display: grid; gap: calc(var(--u) * 1.4); }
+.bar-row span small { display: block; font-size: calc(var(--u) * .9); color: var(--sub); font-weight: 400; }
+.bar-row { display: grid; grid-template-columns: calc(var(--u) * 22) minmax(0, 1fr) calc(var(--u) * 12); gap: calc(var(--u) * 1); align-items: center; font-size: calc(var(--u) * 1.1); }
+.bar-row .track { position: relative; height: calc(var(--u) * 1.6); background: var(--ground); border-radius: 999px; }
+.bar-row .track i { position: absolute; top: 0; bottom: 0; background: var(--sub); opacity: .5; border-radius: 999px; min-width: calc(var(--u) * .6); }
+.bar-row.ours { font-weight: 700; color: var(--accent-text); }
+.bar-row.ours .track i { background: var(--accent); opacity: 1; }
+.bar-row .val { font-variant-numeric: tabular-nums; text-align: right; }
+.bar-row.axis .track { background: none; height: calc(var(--u) * 1.4); border-top: 1px solid var(--rule); border-radius: 0; }
+.bar-row.axis em { position: absolute; top: calc(var(--u) * .2); transform: translateX(-50%); font-style: normal; font-size: calc(var(--u) * .9); color: var(--sub); white-space: nowrap; }
+.bar-row.axis em:first-child { transform: none; }
+.bar-row.axis em:last-child { transform: translateX(-100%); }
+@media (max-width: 760px) { .bar-row { grid-template-columns: 88px minmax(0, 1fr); } .bar-row .val { grid-column: 2; text-align: left; } }
+.callout { background: var(--accent-wash); border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 1.2) calc(var(--u) * 1.6); font-size: calc(var(--u) * 1.45); }
+.callout b { color: var(--accent-text); }
+.callout small { display: block; margin-top: calc(var(--u) * .4); font-size: calc(var(--u) * 1.1); color: var(--sub); }
+
+/* 始めるまで */
+.flow { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: calc(var(--u) * 1.2); margin: 0; padding: 0; counter-reset: s; }
+@media (max-width: 760px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+.flow li { list-style: none; border-top: 3px solid var(--accent); padding-top: calc(var(--u) * 1); display: grid; gap: calc(var(--u) * .4); counter-increment: s; align-content: start; }
+.flow li::before { content: counter(s); font-family: var(--font-display); font-weight: 700; color: var(--accent-text); font-size: calc(var(--u) * 2.2); line-height: 1; }
+.flow li b { font-size: calc(var(--u) * 1.5); }
+.flow li span { font-size: calc(var(--u) * 1.15); color: var(--sub); line-height: 1.6; }
+.btn { display: inline-flex; padding: calc(var(--u) * .9) calc(var(--u) * 2.2); border-radius: 999px; background: var(--accent-ink); color: var(--accent); font-weight: 700; text-decoration: none; font-size: calc(var(--u) * 1.5); justify-self: start; }
+.missing { padding: 80px 16px; text-align: center; color: var(--sub); }
+</style>
+
+<div class="stage" id="stage" lang="ja">
+  <div class="viewport"><div class="deck" id="deck"><p class="missing">提案データが見つかりません。line-builder スキルで生成してください。</p></div></div>
+  <nav class="controls" aria-label="スライドの操作">
+    <button type="button" id="prev">← 前へ</button>
+    <span class="count" id="count"></span>
+    <button type="button" id="next">次へ →</button>
+    <button type="button" id="full">全画面</button>
+  </nav>
+</div>
+
+<script>
+(() => {
+  const D = window.__PROPOSAL__;
+  if (!D) return;
+  const {
+    P, store, persona, nameOf, esc, when, whoOf, personaChoice, events, tagsAt, bubbles, follow, groups, perPerson,
+  } = window.LineModel(D);
+  const { yen, man } = window.LinePricing;
+  const F = window.LinePricing.build(P, perPerson);
+  const pr = F.pr;
+  if (P.accent && /^#[0-9a-f]{3,8}$/i.test(P.accent)) document.documentElement.style.setProperty('--accent', P.accent);
+  document.title = `${store} LINE活用のご提案`;
+
+  const slide = (eyebrow, title, body, cls = '') => `<section class="slide ${cls}"><div class="head"><p class="eyebrow">${esc(eyebrow)}</p><h2>${esc(title)}</h2></div><div class="body">${body}</div></section>`;
+  const list = (items) => `<ul>${(items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  const slides = [];
+
+  // 1. 表紙
+  slides.push(`<section class="slide cover"><div class="top">
+      <p class="eyebrow">${esc(store)}さまへ　LINE活用のご提案</p>
+      <h1>${esc(P.headline || `${store}のLINEで、お客さまとの距離が変わります`)}</h1>
+      ${P.subhead ? `<p class="lead">${esc(P.subhead)}</p>` : ''}
+    </div>${P.proposer ? `<p class="from">ご提案：${esc(P.proposer)}</p>` : ''}</section>`);
+
+  // 2. いまと、始めたあと
+  if (P.before?.length || P.after?.length) {
+    slides.push(slide('変わること', 'いまと、LINEを始めたあと', `<div class="two">
+      <div class="box"><h3>いま</h3>${list(P.before)}</div>
+      <div class="box hl"><h3>LINEを始めたあと</h3>${list(P.after)}</div></div>`));
+  }
+
+  // 3. 友だち追加の直後
+  const first = groups.get(0) || [];
+  const hook = events.find((e) => e.min === 0);
+  slides.push(slide('お客さまの体験', `友だち追加すると、すぐにこう届きます`, `<div class="two">
+    <div class="talk">${first.map((st) => bubbles(st, { pick: true })).join('')}</div>
+    <div class="box"><h3>ここでやっていること</h3><ul>
+      ${hook ? `<li>${esc(nameOf(hook.text))}</li>` : ''}
+      <li>お礼と「何が、どのくらい届くか」を最初に伝える（ブロックされにくくなります）</li>
+      ${first.some((st) => st.choices?.length) ? '<li>ボタンで興味を選んでもらい、その後に届く内容を出し分けます</li>' : ''}
+      <li>ここまでは「返信」なので、LINEの通数にカウントされず無料です</li>
+    </ul></div></div>`));
+
+  // 4. その後の1か月
+  const later = [...new Set([...groups.keys(), ...events.map((e) => e.min)])].filter((m) => m > 0).sort((a, b) => a - b).slice(0, 6);
+  const cols = later.map((m) => {
+    const has = tagsAt(m);
+    const parts = [];
+    for (const st of (groups.get(m) || []).filter((st) => !st.only_tag || has.has(st.only_tag))) {
+      if (st.except_tag && has.has(st.except_tag)) parts.push(`<div class="skip">届きません（${esc(whoOf(st.except_tag))}なので、案内を自動で止めます）</div>`);
+      else parts.push(`<div class="who">${st.only_tag ? `${esc(whoOf(st.only_tag))}に` : '全員に'}</div><div class="b">${esc(nameOf(st.text))}</div>`);
+    }
+    for (const e of events.filter((e) => e.min === m)) parts.push(`<div class="event"><b>${esc(e.label)}</b>${esc(nameOf(e.text))}</div>`);
+    return `<div class="j"><div class="when">${when(m)[0]}</div>${parts.join('')}</div>`;
+  });
+  slides.push(slide('お客さまの体験', `${persona.name}さんの、その後の1か月`, `${persona.profile ? `<p class="small">${esc(persona.name)}さん：${esc(persona.profile)}</p>` : ''}<div class="journey" style="--n:${cols.length}">${cols.join('')}</div>`));
+
+  // 5. こう送られたら
+  const kws = (D.keywords || []).slice(0, 3);
+  slides.push(slide('自動の返事', 'こう送られたら、こう返します（24時間・無料）', `<div class="qa">
+    ${kws.map((k) => `<div class="talk"><div class="b me">${esc(k.example || k.keyword)}</div><div class="b">${esc(nameOf(k.reply || ''))}</div>${k.tag ? `<span class="lbl">→ ${esc(whoOf(k.tag))}として記録</span>` : ''}</div>`).join('')}
+    <div class="talk"><div class="b me">${esc(P.free_question || '今日の夕方って空いてますか？')}</div><div class="b">${esc(P.free_answer || 'お店の人に通知が届き、手の空いたときに返信します。')}</div><span class="lbl">→ 決まった言葉以外は、お店の人が返事</span></div>
+  </div>`));
+
+  // 6. できること
+  const bc = D.broadcasts || [];
+  const allBc = bc.find((b) => !b.to || b.to === '全員');
+  const segBc = bc.find((b) => b.to && b.to !== '全員');
+  const exceptStep = (follow.steps || []).find((s) => s.except_tag);
+  const choiceStep = (follow.steps || []).find((s) => s.choices?.length);
+  const rm = D.richmenu || [];
+  const cards = [
+    ['決まった日に自動で届く', '友だち追加した日から数えて自動で送ります。新しいお客さまが来るたびに同じ流れが始まります。', `${[...groups.keys()].filter((m) => m > 0).length}つのタイミング`],
+    ['興味に合わせて出し分け', '選んでもらった内容を覚えて、合うメッセージだけを送ります。', choiceStep ? choiceStep.choices.map((c) => c.label).join('・') : ''],
+    ['行動済みの人には送らない', 'しつこい案内を自動で止めて、ブロックを防ぎます。', exceptStep ? `${whoOf(exceptStep.except_tag)}には案内を止める` : ''],
+    ['全員にお知らせ', '空き状況や新メニューを、友だち全員にまとめて送れます。', allBc ? `${allBc.when}：${allBc.idea}` : ''],
+    ['絞り込んでお知らせ', '興味のある人だけに送るので、費用もブロックも減ります。', segBc ? `${segBc.when}：${whoOf(segBc.to)}に` : ''],
+    ['いつでも押せるメニュー', 'トーク画面の下に、よく使うボタンを常に出しておけます。', rm.map((r) => r.label).join('・')],
+  ];
+  slides.push(slide('お店からできること', `${store}のLINEでできること`, `<div class="cards">${cards.map(([h, p, ex]) => `<div class="card"><h3>${h}</h3><p>${p}</p>${ex ? `<span class="ex">${esc(ex)}</span>` : ''}</div>`).join('')}</div>`));
+
+  // 7. 費用の比較
+  const pct = (n) => `${(n / F.max) * 100}%`;
+  const totalText = (r) => r.total[0] === r.total[1] ? man(r.total[0]) : `${man(r.total[0])}〜${man(r.total[1])}`;
+  const service = F.market.find((m) => m.service[1] > 0);
+  slides.push(slide('費用', `一般的なLINE構築との比較（${F.years}年間の総額）`, `
+    <div class="bars" aria-label="${F.years}年間の総額の比較">
+      ${F.rows.map((r) => `<div class="bar-row ${r === F.ours ? 'ours' : ''}"><span>${esc(r.short || r.name)}<small>初期${r.initial[0] === r.initial[1] ? man(r.initial[0]) : `${man(r.initial[0])}〜${man(r.initial[1])}`}＋毎月${r.monthly[0] === r.monthly[1] ? yen(r.monthly[0]) : `${yen(r.monthly[0])}〜${yen(r.monthly[1])}`}</small></span><div class="track"><i style="left:${r.total[0] === r.total[1] ? 0 : pct(r.total[0])};width:${r.total[0] === r.total[1] ? pct(r.total[0]) : `calc(${pct(r.total[1])} - ${pct(r.total[0])})`}"></i></div><span class="val">${totalText(r)}</span></div>`).join('')}
+      <div class="bar-row axis"><span></span><div class="track"><em style="left:0">0</em><em style="left:50%">${man(F.max / 2)}</em><em style="left:100%">${man(F.max)}</em></div><span></span></div>
+    </div>
+    ${F.ours && service ? `<p class="callout">構築と運用をまとめて頼む場合より、${F.years}年間で <b>${man(service.total[0] - F.ours.total[0])}〜${man(service.total[1] - F.ours.total[0])}</b> おさえられます。<br><small>構築だけ頼んで自社で運用する場合と比べると総額は同じくらいですが、保守と月1回の改善提案が含まれます。</small></p>` : ''}
+    <p class="small">${esc(F.source)} LINEの月額料金はどの頼み方でも同じようにかかるため含めていません。</p>`));
+
+  // 8. 含まれるもの
+  if (F.ours) {
+    slides.push(slide('費用', `今回のご提案：初期 ${yen(pr.initial)}／月 ${yen(pr.monthly)}`, `<div class="two">
+      <div class="box hl"><h3>初期費用に含まれるもの</h3>${list(pr.initial_includes)}</div>
+      <div class="box"><h3>含まれないもの</h3>${list(pr.excludes)}</div></div>`));
+  }
+
+  // 9. 納品後のお金
+  slides.push(slide('納品後', '始めたあとに毎月かかるお金', `
+    <div class="table-wrap"><table>
+      <thead><tr><th></th>${F.running.map((r) => `<th class="num">友だち${r.friends.toLocaleString()}人</th>`).join('')}</tr></thead>
+      <tbody>
+        <tr><td>月の配信数</td>${F.running.map((r) => `<td class="num">${r.msgs.toLocaleString()}通</td>`).join('')}</tr>
+        <tr><td>LINEの月額料金<small>お店が直接お支払い</small></td>${F.running.map((r) => `<td class="num">${yen(r.plan.fee)}<small>${r.plan.name}</small></td>`).join('')}</tr>
+        ${F.ours ? `<tr><td>保守費</td>${F.running.map(() => `<td class="num">${yen(pr.monthly)}</td>`).join('')}</tr>` : ''}
+        <tr><td>サーバー代</td>${F.running.map(() => `<td class="num">${esc(pr.server || '0円')}</td>`).join('')}</tr>
+        <tr class="sum"><td>毎月の合計</td>${F.running.map((r) => `<td class="num">${yen(r.total)}</td>`).join('')}</tr>
+      </tbody>
+    </table></div>
+    <p class="small">月${F.bpm}回のお知らせと、新しい友だち（全体の約${Math.round(F.ratio * 100)}%）への自動配信（1人約${perPerson}通）で試算。自動の返事は無料。LINEの料金は税別で、改定されることがあります。${esc(pr.server_note || '')}</p>`));
+
+  // 10. 納品後の手間
+  slides.push(slide('納品後', '始めたあとの手間の分担', `<div class="two">
+    <div class="box"><h3>お店がやること</h3>${list((P.tasks || []).map((t) => `${t.when}：${t.what}`))}</div>
+    <div class="box hl"><h3>保守でこちらがやること</h3>${list(pr.monthly_includes || ['（proposal.pricing.monthly_includes に保守の内容を書いてください）'])}</div></div>`));
+
+  // 11. 始めるまで
+  const flow = P.flow || [
+    { title: 'ヒアリング', text: 'お店の強み、よく受ける質問、増やしたいお客さまを伺います' },
+    { title: '設計と文面', text: '配信の流れと文面を作り、動くデモでご確認いただきます' },
+    { title: 'LINEの準備', text: 'LINE公式アカウントの開設と、店内POP・QRコードの用意' },
+    { title: 'スタート', text: '公開後1か月は反応を見ながら文面を調整します' },
+  ];
+  slides.push(slide('始めるまで', P.lead_time || '2週間ほどで始められます', `<ol class="flow" style="--n:${flow.length}">${flow.map((s) => `<li><b>${esc(s.title)}</b><span>${esc(s.text)}</span></li>`).join('')}</ol>`));
+
+  // 12. 締め
+  slides.push(`<section class="slide cover"><div class="top">
+      <h1>${esc(P.closing || 'まずは、お客さまの画面を触ってみてください')}</h1>
+      ${P.demo_url ? `<a class="btn" href="${esc(P.demo_url)}" target="_blank" rel="noopener">デモを開く →</a>` : ''}
+    </div>${P.proposer ? `<p class="from">ご提案：${esc(P.proposer)}</p>` : ''}</section>`);
+
+  // ---------- 操作 ----------
+  const deck = document.getElementById('deck');
+  deck.innerHTML = slides.join('');
+  const all = [...deck.querySelectorAll('.slide')];
+  let i = 0;
+  try { i = Math.min(all.length - 1, Math.max(0, Number(sessionStorage.getItem('slide')) || 0)); } catch {}
+  const show = (n) => {
+    i = Math.min(all.length - 1, Math.max(0, n));
+    all.forEach((s, k) => s.classList.toggle('on', k === i));
+    document.getElementById('count').textContent = `${i + 1} / ${all.length}`;
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === all.length - 1;
+    try { sessionStorage.setItem('slide', String(i)); } catch {}
+  };
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.getElementById('full').onclick = () => {
+    const el = document.getElementById('stage');
+    (document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen?.())?.catch?.(() => {});
+  };
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+  });
+  deck.addEventListener('click', (e) => {
+    if (e.target.closest('a') || window.matchMedia('(max-width: 760px)').matches) return;
+    const r = deck.getBoundingClientRect();
+    show(e.clientX - r.left > r.width / 3 ? i + 1 : i - 1);
+  });
+  show(i);
+})();
+</script>
