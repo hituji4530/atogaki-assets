@@ -1,6 +1,7 @@
 // ui/app.html から 2つを作る：
 //   public/index.html … Worker が配信する管理画面
 //   dist/demo.html    … Worker のコードをブラウザ内で動かす単体デモ（sql.js を CDN から読む）
+//   demo-template.html … 同じデモの配布用。line-builder スキルが設計を差し込んで使う（リポジトリに含める）
 import { build } from 'esbuild';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -35,9 +36,13 @@ if (process.argv.includes('--demo')) {
   });
   const js = out.outputFiles[0].text.replaceAll('</script', '<\\/script');
   mkdirSync('dist', { recursive: true });
-  writeFileSync('dist/demo.html', `${head}<script src="${SQLJS}"></script>
+  // <!--LINE_DESIGN--> の位置に line-builder スキルが window.__DESIGN__ を差し込む
+  const demo = `${head}<!--LINE_DESIGN-->
+<script src="${SQLJS}"></script>
 <script>${js}</script>
-${body}`);
-  console.log('dist/demo.html', Math.round(js.length / 1024), 'KB');
+${body}`;
+  writeFileSync('dist/demo.html', demo);
+  writeFileSync('demo-template.html', demo);
+  console.log('dist/demo.html, demo-template.html', Math.round(js.length / 1024), 'KB');
 }
 console.log('public/index.html');

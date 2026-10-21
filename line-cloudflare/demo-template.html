@@ -1,0 +1,835 @@
+<title>LINE配信ラボ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* レイアウト：左にテスト用のトーク画面（スマホ）、右に運用者の管理画面。狭い画面では縦に積む */
+:root {
+  --paper: #f3f5f1;
+  --surface: #ffffff;
+  --ink: #1b221e;
+  --muted: #5f6b64;
+  --line: #dbe1db;
+  --accent: #0d7349;
+  --accent-soft: #e0efe6;
+  --warn: #9a5b00;
+  --warn-soft: #fbf0dc;
+  --danger: #b3261e;
+  --talk-bg: #b9c9d6;
+  --bubble-bot: #ffffff;
+  --bubble-user: #9be27a;
+  --bubble-ink: #1b221e;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141a17; --surface: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #2e3a34;
+    --accent: #4cc48d; --accent-soft: #1f3a2d; --warn: #e9b35c; --warn-soft: #3a2e1a; --danger: #f2867e;
+    --talk-bg: #22303b; --bubble-bot: #2d3a44; --bubble-user: #3f7a2a; --bubble-ink: #eef3ef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141a17; --surface: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #2e3a34;
+  --accent: #4cc48d; --accent-soft: #1f3a2d; --warn: #e9b35c; --warn-soft: #3a2e1a; --danger: #f2867e;
+  --talk-bg: #22303b; --bubble-bot: #2d3a44; --bubble-user: #3f7a2a; --bubble-ink: #eef3ef;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ヘッダー */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 18px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--font-display); font-size: 24px; letter-spacing: .02em; }
+.brand p { margin: 0; color: var(--muted); font-size: 13px; }
+.top .spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.pill.dry { background: var(--warn-soft); color: var(--warn); }
+.pill.live { background: var(--accent-soft); color: var(--accent); }
+.clock { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.clock strong { color: var(--ink); font-weight: 500; }
+
+.layout { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* スマホ（テスト用トーク） */
+.phone {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 22px;
+  overflow: hidden; display: flex; flex-direction: column; height: min(760px, calc(100vh - 40px)); min-height: 520px;
+}
+@media (max-width: 920px) { .phone { position: static; height: 640px; max-width: 420px; width: 100%; margin: 0 auto; } }
+.phone-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.phone-head .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.phone-head label { font-size: 12px; color: var(--muted); }
+.phone-head select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.talk { flex: 1; overflow-y: auto; background: var(--talk-bg); padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.msg { display: flex; flex-direction: column; max-width: 82%; gap: 2px; }
+.msg.out { align-self: flex-start; }
+.msg.in { align-self: flex-end; align-items: flex-end; }
+.bubble { padding: 8px 12px; border-radius: 16px; white-space: pre-wrap; word-break: break-word; color: var(--bubble-ink); font-size: 13.5px; line-height: 1.55; }
+.msg.out .bubble { background: var(--bubble-bot); border-top-left-radius: 4px; }
+.msg.in .bubble { background: var(--bubble-user); border-top-right-radius: 4px; }
+.meta { font-size: 10.5px; color: var(--ink); opacity: .62; display: flex; gap: 6px; }
+.via { font-family: var(--font-mono); font-size: 10px; padding: 0 5px; border-radius: 4px; background: var(--surface); opacity: .9; }
+.via.free { color: var(--accent); }
+.via.paid { color: var(--warn); }
+.sys { align-self: center; font-size: 11px; color: var(--ink); background: color-mix(in srgb, var(--surface) 55%, transparent); padding: 2px 10px; border-radius: 999px; }
+.empty-talk { margin: auto; text-align: center; color: var(--ink); opacity: .7; font-size: 13px; max-width: 240px; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px 0; background: var(--talk-bg); }
+.quick button { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.compose { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.compose input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+.timebar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--paper); }
+.timebar span { font-size: 12px; color: var(--muted); margin-right: 2px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
+.btn.small { padding: 3px 9px; font-size: 12px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--danger); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* 管理画面 */
+.admin { min-width: 0; display: grid; gap: 16px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 500; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel { display: grid; gap: 16px; }
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.section h2 { font-size: 15px; font-weight: 700; }
+.section .lead { margin: 0; color: var(--muted); font-size: 13px; max-width: 65ch; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat .label { font-size: 12px; color: var(--muted); }
+.stat .value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stat .note { font-size: 11.5px; color: var(--muted); }
+
+.quota { display: grid; gap: 6px; }
+.quota .bar { height: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.quota .bar i { display: block; height: 100%; background: var(--warn); }
+.quota .legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); gap: 8px; flex-wrap: wrap; }
+
+.tagbars { display: grid; gap: 6px; }
+.tagbar { display: grid; grid-template-columns: 120px minmax(0, 1fr) 32px; gap: 10px; align-items: center; font-size: 13px; }
+.tagbar .track { height: 8px; background: var(--paper); border-radius: 999px; overflow: hidden; }
+.tagbar .track i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+.chip button { border: 0; background: none; padding: 0; color: inherit; opacity: .7; font-size: 12px; line-height: 1; }
+.chip.req { background: var(--accent-soft); color: var(--accent); }
+.chip.exc { background: var(--warn-soft); color: var(--warn); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.sel td { background: var(--accent-soft); }
+tr.sel .chip { background: var(--surface); }
+tr.clickable { cursor: pointer; }
+.tags-cell { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.tags-cell input { width: 96px; padding: 1px 6px; border: 1px dashed var(--line); border-radius: 6px; background: transparent; font-size: 12px; }
+.status-blocked { color: var(--danger); font-size: 12px; }
+.status-active { color: var(--accent); font-size: 12px; }
+
+.steps { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.step:first-child { border-top: 0; }
+.step .when { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); font-weight: 500; }
+.step .body { min-width: 0; display: grid; gap: 6px; }
+.step .text { white-space: pre-wrap; word-break: break-word; background: var(--paper); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.step .conds { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
+@media (max-width: 560px) { .step { grid-template-columns: minmax(0, 1fr) auto; } .step .when { grid-column: 1 / -1; } }
+
+form.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
+form.grid .full { grid-column: 1 / -1; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.field textarea { min-height: 72px; resize: vertical; }
+.inline { display: flex; gap: 6px; }
+.inline input { flex: 1; min-width: 0; }
+.inline select { width: auto; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.result { font-size: 13px; color: var(--accent); min-height: 1.4em; margin: 0; }
+
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.flow .node { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--paper); display: grid; gap: 4px; }
+.flow .node b { font-size: 13px; }
+.flow .node span { font-size: 12px; color: var(--muted); }
+.flow .node .mono { font-size: 11.5px; color: var(--accent); }
+.compare { display: grid; gap: 0; }
+.compare div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.compare div:first-child { border-top: 0; }
+.compare dt { color: var(--muted); margin: 0; }
+.compare dd { margin: 0; }
+@media (max-width: 560px) { .compare div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--paper); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
+.login { max-width: 420px; margin: 80px auto; }
+.loading { padding: 60px 0; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .talk { scroll-behavior: smooth; } }
+</style>
+
+<!--LINE_DESIGN-->
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
+<script>"use strict";(()=>{var ye=Symbol();var we=(e,t)=>new Response(e,{headers:{"Content-Type":t.replace(/^[^;]+/,s=>s.toLowerCase())}}).formData();var tt=1e4,U=e=>"headers"in e,_e=async(e,t=Object.create(null))=>{let{all:s=!1,dot:r=!1}=t,n=(U(e)?e.headers:e.raw.headers).get("Content-Type")?.split(";")[0].trim().toLowerCase();return n==="multipart/form-data"||n==="application/x-www-form-urlencoded"?st(e,{all:s,dot:r}):{}};async function st(e,t){if(!U(e)&&e.bodyCache.formData)return Re(await e.bodyCache.formData,t);let s=U(e)?e.headers:e.raw.headers,r=await e.arrayBuffer(),n=we(r,s.get("Content-Type")||"");U(e)||(e.bodyCache.formData=n);let i=await n;return i?Re(i,t):{}}function Re(e,t){let s=Object.create(null),r={count:0};return e.forEach((n,i)=>{t.all||i.endsWith("[]")?rt(s,i,n):s[i]=n}),t.dot&&Object.entries(s).forEach(([n,i])=>{n.includes(".")&&(nt(s,n,i,r),delete s[n])}),s}var rt=(e,t,s)=>{e[t]!==void 0?Array.isArray(e[t])?e[t].push(s):e[t]=[e[t],s]:t.endsWith("[]")?e[t]=[s]:e[t]=s},nt=(e,t,s,r)=>{if(/(?:^|\.)__proto__\./.test(t))return;let n=e,i=t.split(".",34);i.length>33&&Te(),i.forEach((a,o)=>{o===i.length-1?n[a]=s:((!n[a]||typeof n[a]!="object"||Array.isArray(n[a])||n[a]instanceof File)&&(r.count++>=tt&&Te(),n[a]=Object.create(null)),n=n[a])})},Te=()=>{throw new Error("Nesting limit exceeded")};var J=e=>{let t=e.split("/");return t[0]===""&&t.shift(),t},Ne=e=>{let{groups:t,path:s}=it(e),r=J(s);return at(r,t)},it=e=>{let t=[];return e=e.replace(/\{[^}]+\}/g,(s,r)=>{let n=`@${r}`;return t.push([n,s]),n}),{groups:t,path:e}},at=(e,t)=>{for(let s=t.length-1;s>=0;s--){let[r]=t[s];for(let n=e.length-1;n>=0;n--)if(e[n].includes(r)){e[n]=e[n].replace(r,t[s][1]);break}}return e},v={},Le=(e,t)=>{if(e==="*")return"*";let s=e.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);if(s){let r=`${e}#${t}`;return v[r]||(s[2]?v[r]=t&&t[0]!==":"&&t[0]!=="*"?[r,s[1],new RegExp(`^${s[2]}(?=/${t})`)]:[e,s[1],new RegExp(`^${s[2]}$`)]:v[r]=[e,s[1],!0]),v[r]}return null},xe=(e,t)=>{try{return t(e)}catch{return e.replace(/(?:%[0-9A-Fa-f]{2})+/g,s=>{try{return t(s)}catch{return s}})}},ot=e=>xe(e,decodeURI),V=e=>{let t=e.url,s=t.indexOf("/",t.indexOf(":")+4),r=s;for(;r<t.length;r++){let n=t.charCodeAt(r);if(n===37){let i=t.indexOf("?",r),a=t.indexOf("#",r),o=i===-1?a===-1?void 0:a:a===-1?i:Math.min(i,a),c=t.slice(s,o);return ot(c.includes("%25")?c.replace(/%25/g,"%2525"):c)}else if(n===63||n===35)break}return t.slice(s,r)};var Oe=e=>{let t=V(e);return t.length>1&&t.at(-1)==="/"?t.slice(0,-1):t},_=(e,t,...s)=>(s.length&&(t=_(t,...s)),`${e?.[0]==="/"?"":"/"}${e}${t==="/"?"":`${e?.at(-1)==="/"?"":"/"}${t?.[0]==="/"?t.slice(1):t}`}`),k=e=>{if(e.charCodeAt(e.length-1)!==63||!e.includes(":"))return null;let t=e.split("/"),s=[],r="";return t.forEach(n=>{if(n!==""&&!/\:/.test(n))r+="/"+n;else if(/\:/.test(n))if(n.charCodeAt(n.length-1)===63){s.length===0&&r===""?s.push("/"):s.push(r);let i=n.slice(0,-1);r+="/"+i,s.push(r)}else r+="/"+n}),s.filter((n,i,a)=>a.indexOf(n)===i)},M=e=>e.indexOf("%")!==-1?xe(e,ct):e,K=e=>(e.indexOf("+")!==-1&&(e=e.replace(/\+/g," ")),M(e)),Se=(e,t,s)=>{let r=e.indexOf("#",8);r!==-1&&(e=e.slice(0,r));let n;if(!s&&t&&t.indexOf("%")===-1&&t.indexOf("+")===-1){let o=e.indexOf("?",8);if(o===-1)return;for(e.startsWith(t,o+1)||(o=e.indexOf(`&${t}`,o+1));o!==-1;){let c=e.charCodeAt(o+t.length+1);if(c===61){let l=o+t.length+2,u=e.indexOf("&",l);return K(e.slice(l,u===-1?void 0:u))}else if(c==38||isNaN(c))return"";o=e.indexOf(`&${t}`,o+1)}if(n=/[%+]/.test(e),!n)return}let i=Object.create(null);n??=/[%+]/.test(e);let a=e.indexOf("?",8);for(;a!==-1;){let o=e.indexOf("&",a+1),c=e.indexOf("=",a);c>o&&o!==-1&&(c=-1);let l=e.slice(a+1,c===-1?o===-1?void 0:o:c);if(n&&(l=K(l)),a=o,l==="")continue;let u;c===-1?u="":(u=e.slice(c+1,o===-1?void 0:o),n&&(u=K(u))),s?(i[l]&&Array.isArray(i[l])||(i[l]=[]),i[l].push(u)):i[l]??=u}return t?i[t]:i},be=Se,Ae=(e,t)=>Se(e,t,!0),ct=decodeURIComponent;var Ie=class{raw;#t;#e;routeIndex=0;path;bodyCache={};constructor(e,t="/",s=[[]]){this.raw=e,this.path=t,this.#e=s}param(e){return e?this.#s(e):this.#i()}#s(e){let t=this.#e[0][this.routeIndex]?.[1][e],s=this.#r(t);return s&&M(s)}#i(){let e={},t=Object.keys(this.#e[0][this.routeIndex]?.[1]??{});for(let s of t){let r=this.#r(this.#e[0][this.routeIndex][1][s]);r!==void 0&&(e[s]=M(r))}return e}#r(e){return this.#e[1]?this.#e[1][e]:e}query(e){return be(this.url,e)}queries(e){return Ae(this.url,e)}header(e){if(e)return this.raw.headers.get(e)??void 0;let t=Object.create(null);return this.raw.headers.forEach((s,r)=>{t[r]=s}),t}async parseBody(e){return _e(this,e)}#n=e=>{let{bodyCache:t,raw:s}=this,r=t[e];if(r)return r;for(let n in t)return t[n].then(i=>{n==="json"&&(i=JSON.stringify(i));let a=n==="formData"?void 0:s.headers.get("content-type");return new Response(i,{headers:a?{"Content-Type":a}:void 0})[e]()});return t[e]=s[e]()};json(){return this.#n("text").then(e=>JSON.parse(e))}text(){return this.#n("text")}arrayBuffer(){return this.#n("arrayBuffer")}bytes(){return this.#n("arrayBuffer").then(e=>new Uint8Array(e))}blob(){return this.#n("blob")}formData(){return this.#n("formData")}addValidatedData(e,t){(this.#t??={})[e]=t}valid(e){return this.#t?.[e]}get url(){return this.raw.url}get method(){return this.raw.method}get[ye](){return this.#e}get matchedRoutes(){return this.#e[0].map(([[,e]])=>e)}get routePath(){return this.#e[0].map(([[,e]])=>e)[this.routeIndex].path}};var Ce={Stringify:1,BeforeStream:2,Stream:3},lt=(e,t)=>{let s=new String(e);return s.isEscaped=!0,s.callbacks=t,s};var z=async(e,t,s,r,n)=>{typeof e=="object"&&!(e instanceof String)&&(e instanceof Promise||(e=e.toString()),e instanceof Promise&&(e=await e));let i=e.callbacks;if(!i?.length)return Promise.resolve(e);n?n[0]+=e:n=[e];let a=Promise.all(i.map(o=>o({phase:t,buffer:n,context:r}))).then(o=>Promise.all(o.filter(Boolean).map(c=>z(c,t,!1,r,n))).then(()=>n[0]));return s?lt(await a,i):a};var ut="text/plain; charset=UTF-8",Q=(e,t)=>({"Content-Type":e,...t}),C=(e,t)=>new Response(e,t),Z=class{#t;#e;env={};#s;finalized=!1;error;#i;#r;#n;#u;#c;#l;#o;#d;#f;constructor(e,t){this.#t=e,t&&(this.#r=t.executionCtx,this.env=t.env,this.#l=t.notFoundHandler,this.#f=t.path,this.#d=t.matchResult)}get req(){return this.#e??=new Ie(this.#t,this.#f,this.#d),this.#e}get event(){if(this.#r&&"respondWith"in this.#r)return this.#r;throw Error("This context has no FetchEvent")}get executionCtx(){if(this.#r)return this.#r;throw Error("This context has no ExecutionContext")}get res(){return this.#n||=C(null,{headers:this.#o??=new Headers})}set res(e){if(this.#n&&e){e=C(e.body,e);for(let[t,s]of this.#n.headers.entries())if(t!=="content-type")if(t==="set-cookie"){let r=this.#n.headers.getSetCookie();e.headers.delete("set-cookie");for(let n of r)e.headers.append("set-cookie",n)}else e.headers.set(t,s)}this.#n=e,this.finalized=!0}render=(...e)=>(this.#c??=t=>this.html(t),this.#c(...e));setLayout=e=>this.#u=e;getLayout=()=>this.#u;setRenderer=e=>{this.#c=e};header=(e,t,s)=>{this.finalized&&(this.#n=C(this.#n.body,this.#n));let r=this.#n?this.#n.headers:this.#o??=new Headers;t===void 0?r.delete(e):s?.append?r.append(e,t):r.set(e,t)};status=e=>{this.#i=e};set=(e,t)=>{this.#s??=new Map,this.#s.set(e,t)};get=e=>this.#s?this.#s.get(e):void 0;get var(){return this.#s?Object.fromEntries(this.#s):{}}#a(e,t,s){let r=this.#n?new Headers(this.#n.headers):this.#o;if(typeof t=="object"&&t.headers){r??=new Headers;for(let[i,a]of new Headers(t.headers))i==="set-cookie"?r.append(i,a):r.set(i,a)}if(s){if(!r){let i=0;for(let a in s)if(++i>1||typeof s[a]!="string"){r=new Headers;break}}if(r)for(let i in s){let a=s[i];if(typeof a=="string")r.set(i,a);else{r.delete(i);for(let o of a)r.append(i,o)}}}let n=typeof t=="number"?t:t?.status??this.#i;return C(e,{status:n,headers:r??s})}newResponse=(...e)=>this.#a(...e);body=(e,t,s)=>this.#a(e,t,s);text=(e,t,s)=>!this.#o&&!this.#i&&!t&&!s&&!this.finalized?new Response(e):this.#a(e,t,Q(ut,s));json=(e,t,s)=>this.#a(JSON.stringify(e),t,Q("application/json",s));html=(e,t,s)=>{let r=n=>this.#a(n,t,Q("text/html; charset=UTF-8",s));return typeof e=="object"?z(e,Ce.Stringify,!1,{}).then(r):r(e)};redirect=(e,t)=>{let s=String(e);return this.header("Location",/[^\x00-\xFF]/.test(s)?encodeURI(s):s),this.newResponse(null,t??302)};notFound=()=>(this.#l??=()=>C(),this.#l(this))};var ee=(e,t,s)=>(r,n)=>{let i=-1;return a(0);async function a(o){if(o<=i)throw new Error("next() called multiple times");i=o;let c,l=!1,u;if(e[o]?(u=e[o][0][0],r.req.routeIndex=o):u=o===e.length&&n||void 0,u)try{c=await u(r,()=>a(o+1))}catch(d){if(d instanceof Error&&t)r.error=d,c=await t(d,r),l=!0;else throw d}else r.finalized===!1&&s&&(c=await s(r));return c&&(r.finalized===!1||l)&&(r.res=c),r}};var De=["get","post","put","delete","options","patch","query"],H="Can not add a route since the matcher is already built.",B=class extends Error{};var Pe="__COMPOSED_HANDLER";var dt=e=>e.text("404 Not Found",404),Ue=(e,t)=>{if("getResponse"in e){let s=e.getResponse();return t.newResponse(s.body,s)}return console.error(e),t.text("Internal Server Error",500)},ve=class ke{get;post;put;delete;options;patch;query;all;on;use;router;getPath;_basePath="/";#t="/";routes=[];constructor(t={}){[...De,"all"].forEach(n=>{this[n]=(i,...a)=>{let o=n.toUpperCase();return typeof i=="string"?this.#t=i:this.#i(o,this.#t,i),a.forEach(c=>{this.#i(o,this.#t,c)}),this}}),this.on=(n,i,...a)=>{for(let o of[i].flat()){this.#t=o;for(let c of[n].flat()){let l=c.toUpperCase();for(let u of a)this.#i(l,this.#t,u)}}return this},this.use=(n,...i)=>(typeof n=="string"?this.#t=n:(this.#t="*",i.unshift(n)),i.forEach(a=>{this.#i("ALL",this.#t,a)}),this);let{strict:s,...r}=t;Object.assign(this,r),this.getPath=s??!0?t.getPath??V:Oe}#e(){let t=new ke({router:this.router,getPath:this.getPath});return t.errorHandler=this.errorHandler,t.#s=this.#s,t.routes=this.routes,t}#s=dt;errorHandler=Ue;route(t,s){let r=this.basePath(t);return s.routes.map(n=>{let i;s.errorHandler===Ue?i=n.handler:(i=async(a,o)=>(await ee([],s.errorHandler)(a,()=>n.handler(a,o))).res,i[Pe]=n.handler),r.#i(n.method,n.path,i,n.basePath)}),this}basePath(t){let s=this.#e();return s._basePath=_(this._basePath,t),s}onError=t=>(this.errorHandler=t,this);notFound=t=>(this.#s=t,this);mount(t,s,r){let n,i;r&&(typeof r=="function"?i=r:(i=r.optionHandler,r.replaceRequest===!1?n=c=>c:n=r.replaceRequest));let a=i?c=>{let l=i(c);return Array.isArray(l)?l:[l]}:c=>{let l;try{l=c.executionCtx}catch{}return[c.env,l]};n||=(()=>{let c=_(this._basePath,t),l=c==="/"?0:c.length;return u=>{let d=new URL(u.url);return d.pathname=this.getPath(u).slice(l)||"/",new Request(d,u)}})();let o=async(c,l)=>{let u=await s(n(c.req.raw),...a(c));if(u)return u;await l()};return this.#i("ALL",_(t,"*"),o),this}#i(t,s,r,n){s=_(this._basePath,s);let i={basePath:n!==void 0?_(this._basePath,n):this._basePath,path:s,method:t,handler:r};this.router.add(t,s,[r,i]),this.routes.push(i)}#r(t,s){if(t instanceof Error)return this.errorHandler(t,s);throw t}#n(t,s,r,n){if(n==="HEAD")return(async()=>new Response(null,await this.#n(t,s,r,"GET")))();let i=this.getPath(t,{env:r}),a=this.router.match(n,i),o=new Z(t,{path:i,matchResult:a,env:r,executionCtx:s,notFoundHandler:this.#s});if(a[0].length===1){let l;try{l=a[0][0][0][0](o,async()=>{o.res=await this.#s(o)})}catch(u){return this.#r(u,o)}return l instanceof Promise?l.then(u=>u||(o.finalized?o.res:this.#s(o))).catch(u=>this.#r(u,o)):l??this.#s(o)}let c=ee(a[0],this.errorHandler,this.#s);return(async()=>{try{let l=await c(o);if(!l.finalized)throw new Error("Context is not finalized. Did you forget to return a Response object or `await next()`?");return l.res}catch(l){return this.#r(l,o)}})()}fetch=(t,...s)=>this.#n(t,s[1],s[0],t.method);request=(t,s,r,n)=>t instanceof Request?this.fetch(s?new Request(t,s):t,r,n):(t=t.toString(),this.fetch(new Request(/^https?:\/\//.test(t)?t:`http://localhost${_("/",t)}`,s),r,n));fire=()=>{addEventListener("fetch",t=>{t.respondWith(this.#n(t.request,t,void 0,t.request.method))})}};var g=()=>Object.create(null);var j=[];function te(e,t){let s=this.buildAllMatchers(),r=((n,i)=>{let a=s[n]||s.ALL,o=a[2][i];if(o)return o;let c=i.match(a[0]);if(!c)return[[],j];let l=c.indexOf("",1);return[a[1][l],c]});return this.match=r,r(e,t)}var re="[^/]+";var ne="(?:|/.*)",N=Symbol(),Me=new Set(".\\+*[^]$()");function ft(e,t){return e.length===1?t.length===1?e<t?-1:1:-1:t.length===1?1:e===".*"||e==="(?:|/.*)"?t==="(?:|/.*)"?-1:1:t===".*"||t==="(?:|/.*)"?-1:e==="[^/]+"?1:t==="[^/]+"?-1:e.length===t.length?e<t?-1:1:t.length-e.length}var He=class se{#t;#e;#s=g();insert(t,s,r,n,i){let a=this;for(let o=0,c=t.length;o<c;o++){let l=t[o],u=l.length===1?l==="*"?o===c-1?["","",".*"]:["","",re]:null:l==="/*"?["","",ne]:l.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/),d;if(u){let f=u[1],p=u[2]||"[^/]+";if(f&&u[2]&&(p===".*"||(p=p.replace(/^\((?!\?:)(?=[^)]+\)$)/,"(?:"),/\((?!\?:)/.test(p))||p.length===1&&Me.has(p)))throw N;if(d=a.#s[p],!d){if(p!==".*"&&p!=="(?:|/.*)"){for(let w in a.#s)if((p.length>1||w.length>1)&&w!==".*"&&w!=="(?:|/.*)")throw N}d=a.#s[p]=new se}f!==""&&(d.#e??=n.varIndex++,r.push([f,d.#e]))}else if(d=a.#s[l],!d){for(let f in a.#s)if(f.length>1&&f!==".*"&&f!=="(?:|/.*)")throw N;d=a.#s[l]=new se}a=d}if(a.#t!==void 0)throw N;a.#t=i?-1:s}buildRegExpStr(){let t=Object.keys(this.#s).sort(ft).map(s=>{let r=this.#s[s],n=r.buildRegExpStr();return n===""?"":(typeof r.#e=="number"?`(${s})@${r.#e}`:Me.has(s)?`\\${s}`:s)+n}).filter(Boolean);return typeof this.#t=="number"&&this.#t!==-1&&t.unshift(`#${this.#t}`),t.length===0?"":t.length===1?t[0]:"(?:"+t.join("|")+")"}};var ie=class{#t={varIndex:0};#e=new He;#s=0;paths=g();insert(e,t){if(t){this.#e.insert(e.split(""),0,[],this.#t,!0);return}let s=[],r=[],n=e;for(let a=0;;){let o=!1;if(n=n.replace(/\{[^}]+\}/g,c=>{let l=`@\\${a}`;return r[a]=[l,c],a++,o=!0,l}),!o)break}let i=n.match(/(?::[^\/]+)|(?:\/\*$)|./g)||[];for(let a=r.length-1;a>=0;a--){let[o]=r[a];for(let c=i.length-1;c>=0;c--)if(i[c].indexOf(o)!==-1){i[c]=i[c].replace(o,r[a][1]);break}}this.#e.insert(i,this.#s,s,this.#t,!1),this.paths[e]=[this.#s++,s]}buildRegExp(){let e=this.#e.buildRegExpStr();if(e==="")return[/^$/,[],[]];let t=0,s=[],r=[];return e=e.replace(/#(\d+)|@(\d+)|\.\*\$/g,(n,i,a)=>i!==void 0?(s[++t]=Number(i),"$()"):(a!==void 0&&(r[Number(a)]=++t),"")),[new RegExp(`^${e}`),s,r]}};var Be=g();function je(e){return Be[e]??=new RegExp(`^${e.replace(/\/:[^/{}]+(?:\{\[\^\/]\+})?(?=[/{]|$)|\/?\*$|([.\\+*[^\]$()?{}|])/g,(t,s)=>s?`\\${s}`:t==="/*"?ne:t==="*"?".*":`/:${re}`)}$`)}function F(e,t){for(let s of Object.keys(e).sort((r,n)=>n.length-r.length))if(je(s).test(t))return[...e[s]]}var $=class{name="RegExpRouter";#t;#e;#s;constructor(){this.#t={ALL:g()},this.#e={ALL:g()},this.#s={ALL:new ie}}#i(e,t){try{this.#s[e].insert(t,!/\*|\/:/.test(t))}catch(s){throw s===N?new B(t):s}}add(e,t,s){let r=this.#t,n=this.#e;if(!r)throw new Error(H);if(!r[e]){this.#s[e]=new ie;for(let o of[r,n]){o[e]=g();for(let c in o.ALL)o[e][c]=[...o.ALL[c]],this.#i(e,c)}}t==="/*"&&(t="*");let i=e==="ALL"?Object.keys(r):[e];if(/\*$/.test(t)){let o=je(t);for(let c of i)r[c][t]||(this.#i(c,t),r[c][t]=F(r[c],t)||F(r.ALL,t)||[]);for(let c of[r,n])for(let l of i)for(let u in c[l])o.test(u)&&c[l][u].push([s,t]);return}let a=k(t)||[t];for(let o of a)for(let c of i)n[c][o]||(this.#i(c,o),n[c][o]=F(r[c],o)||F(r.ALL,o)||[]),n[c][o].push([s,o])}match=te;buildAllMatchers(){let e=g();for(let t of Object.keys(this.#e))e[t]=this.#r(t);return this.#t=this.#e=this.#s=void 0,Be=g(),e}#r(e){let t=this.#t[e],s=this.#e[e],r=this.#s[e],n=g(),i=[],[a,o,c]=r.buildRegExp();for(let l of[t,s])for(let u in l){let d=l[u],f=r.paths[u];if(!f){n[u]=[d.map(([p])=>[p,g()]),j];continue}i[f[0]]=d.map(([p,w])=>[p,r.paths[w][1].reduceRight((D,[m],T)=>(D[m]=c[f[1][T][1]],D),g())])}return[a,o.map(l=>i[l]),n]}};var Fe=class{name="SmartRouter";#t=[];#e=[];constructor(e){this.#t=e.routers}add(e,t,s){if(!this.#e)throw new Error(H);this.#e.push([e,t,s])}match(e,t){if(!this.#e)throw new Error("Fatal error");let s=this.#t,r=this.#e,n=s.length,i=0,a;for(;i<n;i++){let o=s[i];try{for(let c=0,l=r.length;c<l;c++)o.add(...r[c]);a=o.match(e,t)}catch(c){if(c instanceof B)continue;throw c}this.match=o.match.bind(o),this.#t=[o],this.#e=void 0;break}if(i===n)throw new Error("Fatal error");return this.name=`SmartRouter + ${this.activeRouter.name}`,a}get activeRouter(){if(this.#e||this.#t.length!==1)throw new Error("No active router has been determined yet.");return this.#t[0]}};var ae=g(),pt=0,$e=class qe{#t=[];#e=g();#s=[];#i;#r=ae;insert(t,s,r){let n=this,i=Ne(s),a=new Set,o=0;for(let c of i){let l=i[++o],u=Le(c,l)||(l===void 0&&c&&c.indexOf("*")===c.length-1?c:null),d=Array.isArray(u),f=d?u[0]:u||c,p=n.#e[f]||=new qe;u&&!p.#i&&(p.#i=u,n.#s.push(p)),n=p,d&&a.add(u[1])}n.#t.push({[t]:{handler:r,possibleKeys:[...a],score:++pt}})}#n(t,s,r,n,i){for(let a=0,o=s.#t.length;a<o;a++){let c=s.#t[a],l=c[r]||c.ALL;if(l){l.params=g(),t.push(l);for(let u=0,d=l.possibleKeys.length;u<d;u++){let f=l.possibleKeys[u];l.params[f]=i?.[f]&&!u?i[f]:n[f]??i?.[f]}}}}search(t,s){let r=[];this.#r=ae;let n=[this],i=J(s),a=[],o=i.length,c=null;for(let l=0;l<o;l++){let u=i[l],d=l===o-1,f=[];for(let w=0,D=n.length;w<D;w++){let m=n[w],T=m.#e[u];T&&(T.#r=m.#r,d?(T.#e["*"]&&this.#n(r,T.#e["*"],t,m.#r),this.#n(r,T,t,m.#r)):f.push(T));for(let E of m.#s){let A=E.#i,R=m.#r===ae?{}:{...m.#r};if(typeof A=="string"){(A==="*"||u.startsWith(A.slice(0,-1)))&&(this.#n(r,E,t,m.#r),A==="*"&&(E.#r=R,f.push(E)));continue}let[,Ee,I]=A;if(!(!u&&I===!0)){if(I!==!0){if(!c){c=[];let X=s[0]==="/"?1:0;for(let O=0;O<o;O++)c[O]=X,X+=i[O].length+1}let me=s.slice(c[l]),P=I.exec(me);if(P){R[Ee]=P[0],this.#n(r,E,t,m.#r,R),P[0].length===me.length&&E.#e["*"]&&this.#n(r,E.#e["*"],t,m.#r,R);for(let X in E.#e){E.#r=R;let O=P[0].match(/\//g)?.length??0;(a[O]||=[]).push(E);break}continue}}(I===!0||I.test(u))&&(R[Ee]=u,d?(this.#n(r,E,t,R,m.#r),E.#e["*"]&&this.#n(r,E.#e["*"],t,R,m.#r)):(E.#r=R,f.push(E)))}}}let p=a.shift();n=p?f.concat(p):f}return r[1]&&r.sort((l,u)=>l.score-u.score),[r.map(({handler:l,params:u})=>[l,u])]}};var oe=class{name="TrieRouter";#t=new $e;add(e,t,s){for(let r of k(t)||[t])this.#t.insert(e,r,s)}match(e,t){return this.#t.search(e,t)}};var q=class extends ve{constructor(e={}){super(e),this.router=e.router??new Fe({routers:[new $,new oe]})}};var Ge="https://api.line.me/v2/bot",x=e=>e.DRY_RUN==="true";async function We(e,t,s){if(!s)return!1;let r=await crypto.subtle.importKey("raw",new TextEncoder().encode(e),{name:"HMAC",hash:"SHA-256"},!1,["sign"]),n=await crypto.subtle.sign("HMAC",r,new TextEncoder().encode(t)),i=btoa(String.fromCharCode(...new Uint8Array(n)));return ht(i,s)}function ht(e,t){if(e.length!==t.length)return!1;let s=0;for(let r=0;r<e.length;r++)s|=e.charCodeAt(r)^t.charCodeAt(r);return s===0}async function ce(e,t,s){if(x(e))return;let r=await fetch(`${Ge}${t}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${e.LINE_CHANNEL_ACCESS_TOKEN}`},body:JSON.stringify(s)});if(!r.ok)throw new Error(`LINE API ${t} ${r.status}: ${await r.text()}`)}var Ye=(e,t,s)=>ce(e,"/message/reply",{replyToken:t,messages:s.slice(0,5)}),S=(e,t,s)=>ce(e,"/message/push",{to:t,messages:s.slice(0,5)}),Xe=(e,t,s)=>ce(e,"/message/multicast",{to:t,messages:s.slice(0,5)});async function le(e,t){if(x(e))return{};let s=await fetch(`${Ge}/profile/${t}`,{headers:{Authorization:`Bearer ${e.LINE_CHANNEL_ACCESS_TOKEN}`}});return s.ok?s.json():{}}async function L(e){if(!x(e))return Date.now();let t=await e.DB.prepare("SELECT value FROM settings WHERE key = 'clock_offset'").first();return Date.now()+Number(t?.value??0)}async function Je(e,t){await e.DB.prepare(`INSERT INTO settings (key, value) VALUES ('clock_offset', ?)
+     ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + excluded.value`).bind(String(t*6e4)).run()}function b(e,t){let s=e.trimStart().startsWith("{"),r=t||"\u3042\u306A\u305F",n=e.replaceAll("{name}",s?JSON.stringify(r).slice(1,-1):r);if(s)try{return JSON.parse(n)}catch{}return{type:"text",text:n}}async function y(e,t,s,r,n){if(!n.length)return;let i=await L(e);await e.DB.batch(n.map(a=>e.DB.prepare("INSERT INTO messages (user_id, direction, via, body, created_at) VALUES (?, ?, ?, ?, ?)").bind(t,s,r,JSON.stringify(a),i)))}async function de(e,t){return(await e.DB.prepare("SELECT display_name FROM friends WHERE user_id = ?").bind(t).first())?.display_name??null}async function G(e,t,s){await e.DB.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").bind(s).run(),await e.DB.prepare("INSERT OR IGNORE INTO friend_tags (user_id, tag_id, created_at) SELECT ?, id, ? FROM tags WHERE name = ?").bind(t,await L(e),s).run()}async function fe(e,t,s){await e.DB.prepare("DELETE FROM friend_tags WHERE user_id = ? AND tag_id = (SELECT id FROM tags WHERE name = ?)").bind(t,s).run()}async function Et(e,t){let{results:s}=await e.DB.prepare("SELECT t.name FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.user_id = ?").bind(t).all();return new Set(s.map(r=>r.name))}async function ue(e,t,s){await e.DB.prepare(`INSERT OR IGNORE INTO enrollments (user_id, scenario_id, started_at)
+     SELECT ?, id, ? FROM scenarios WHERE id = ? OR name = ?`).bind(t,await L(e),s.id??-1,s.name??"").run()}async function Ve(e,t){let s=await L(e),{results:r}=await e.DB.prepare(`SELECT e.user_id, s.id AS step_id, s.message, s.require_tag, s.exclude_tag, f.display_name,
+            (e.started_at + s.offset_minutes * 60000) < (s.created_at - 600000) AS added_later
+       FROM enrollments e
+       JOIN scenario_steps s ON s.scenario_id = e.scenario_id
+       JOIN friends f ON f.user_id = e.user_id AND f.status = 'active'
+      WHERE e.status = 'active'
+        AND e.started_at + s.offset_minutes * 60000 <= ?
+        AND (? IS NULL OR e.user_id = ?)
+        AND NOT EXISTS (SELECT 1 FROM step_deliveries d WHERE d.user_id = e.user_id AND d.step_id = s.id)
+      ORDER BY e.user_id, s.offset_minutes, s.id
+      LIMIT 500`).bind(s,t??null,t??null).all(),n=new Map,i=new Map;for(let a of r){i.has(a.user_id)||i.set(a.user_id,await Et(e,a.user_id));let o=i.get(a.user_id),c=!a.added_later&&(!a.require_tag||o.has(a.require_tag))&&(!a.exclude_tag||!o.has(a.exclude_tag)),l=await e.DB.prepare("INSERT OR IGNORE INTO step_deliveries (user_id, step_id, result, created_at) VALUES (?, ?, ?, ?)").bind(a.user_id,a.step_id,c?"sent":"skipped",s).run();if(!c||!l.meta.changes)continue;let u=n.get(a.user_id)??[];u.push(b(a.message,a.display_name)),n.set(a.user_id,u)}return n}async function pe(e){let t=await Ve(e),s=0;for(let[r,n]of t)for(let i=0;i<n.length;i+=5){let a=n.slice(i,i+5);try{await S(e,r,a),await y(e,r,"out","push",a),s++}catch(o){console.error("push failed",r,o)}}return{users:t.size,pushes:s}}async function he(e,t,s={}){let r=t.source?.userId;if(!r)return;let n=await L(e),i=[];if(t.type==="follow"){let o={...await le(e,r),...s};await e.DB.prepare(`INSERT INTO friends (user_id, display_name, status, followed_at, updated_at) VALUES (?, ?, 'active', ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET status = 'active', display_name = COALESCE(excluded.display_name, display_name), updated_at = excluded.updated_at`).bind(r,o.displayName??null,n,n).run(),await y(e,r,"in","follow",[{type:"follow"}]);let{results:c}=await e.DB.prepare("SELECT id FROM scenarios WHERE trigger = 'follow'").all();for(let l of c)await ue(e,r,{id:l.id})}else if(t.type==="unfollow"){await e.DB.prepare("UPDATE friends SET status = 'blocked', updated_at = ? WHERE user_id = ?").bind(n,r).run(),await y(e,r,"in","unfollow",[{type:"unfollow"}]);return}else if(t.type==="message"){await Ke(e,r,n),await y(e,r,"in","message",[t.message??{}]);let o=t.message?.type==="text"?t.message.text??"":"";o&&i.push(...await mt(e,r,o))}else if(t.type==="postback"){await Ke(e,r,n);let o=new URLSearchParams(t.postback?.data??"");await y(e,r,"in","postback",[{type:"postback",...t.postback}]),o.get("tag")&&await G(e,r,o.get("tag")),o.get("untag")&&await fe(e,r,o.get("untag")),o.get("scenario")&&await ue(e,r,{name:o.get("scenario")}),o.get("reply")&&i.push(b(o.get("reply"),await de(e,r)))}else return;if(i.push(...(await Ve(e,r)).get(r)??[]),!i.length)return;let a=i.slice(0,5);if(t.replyToken?(await Ye(e,t.replyToken,a),await y(e,r,"out","reply",a)):(await S(e,r,a),await y(e,r,"out","push",a)),i.length>5){let o=i.slice(5,10);await S(e,r,o),await y(e,r,"out","push",o)}}async function Ke(e,t,s){if(await e.DB.prepare("SELECT 1 FROM friends WHERE user_id = ?").bind(t).first())return;let n=await le(e,t);await e.DB.prepare("INSERT OR IGNORE INTO friends (user_id, display_name, status, followed_at, updated_at) VALUES (?, ?, 'active', ?, ?)").bind(t,n.displayName??null,s,s).run()}async function mt(e,t,s){let{results:r}=await e.DB.prepare("SELECT * FROM keyword_rules ORDER BY id").all(),n=r.find(i=>i.match_type==="exact"?s.trim()===i.keyword:s.includes(i.keyword));return n?(n.add_tag&&await G(e,t,n.add_tag),n.start_scenario&&await ue(e,t,{name:n.start_scenario}),n.reply?[b(n.reply,await de(e,t))]:[]):[]}async function ze(e,t,s){let r=b(s,await de(e,t));await S(e,t,[r]),await y(e,t,"out","push",[r])}async function Qe(e,t,s,r){let{results:n}=await e.DB.prepare(`SELECT f.user_id, f.display_name FROM friends f
+      WHERE f.status = 'active'
+        AND (? IS NULL OR EXISTS (SELECT 1 FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.user_id = f.user_id AND t.name = ?))
+        AND (? IS NULL OR NOT EXISTS (SELECT 1 FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.user_id = f.user_id AND t.name = ?))`).bind(s||null,s||null,r||null,r||null).all();if(t.includes("{name}"))for(let i of n){let a=b(t,i.display_name);await S(e,i.user_id,[a]),await y(e,i.user_id,"out","push",[a])}else{let i=b(t,null);for(let a=0;a<n.length;a+=500){let o=n.slice(a,a+500).map(c=>c.user_id);await Xe(e,o,[i]);for(let c of o)await y(e,c,"out","multicast",[i])}}return{recipients:n.length}}var W=new q;W.post("/webhook",async e=>{let t=await e.req.text();if(!await We(e.env.LINE_CHANNEL_SECRET,t,e.req.header("x-line-signature")??null))return e.text("invalid signature",401);let{events:s=[]}=JSON.parse(t),r=(async()=>{for(let n of s)try{await he(e.env,n)}catch(i){console.error("event failed",i)}})();try{e.executionCtx.waitUntil(r)}catch{await r}return e.text("ok")});var h=new q;h.use("*",async(e,t)=>{let s=e.req.header("authorization")??"";if(!e.env.ADMIN_TOKEN||s!==`Bearer ${e.env.ADMIN_TOKEN}`)return e.json({error:"unauthorized"},401);await t()});h.get("/stats",async e=>{let t=e.env.DB,[s,r,n,i]=await t.batch([t.prepare("SELECT COUNT(*) AS n FROM friends WHERE status = 'active'"),t.prepare("SELECT COUNT(*) AS n FROM friends WHERE status = 'blocked'"),t.prepare("SELECT t.name, COUNT(ft.user_id) AS n FROM tags t LEFT JOIN friend_tags ft ON ft.tag_id = t.id GROUP BY t.id ORDER BY n DESC"),t.prepare("SELECT via, COUNT(*) AS n FROM messages WHERE direction = 'out' GROUP BY via")]);return e.json({friends:s.results[0].n,blocked:r.results[0].n,tags:n.results,sent:i.results,dryRun:x(e.env),now:await L(e.env)})});h.get("/friends",async e=>{let{results:t}=await e.env.DB.prepare(`SELECT f.*, (SELECT GROUP_CONCAT(t.name, '|') FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.user_id = f.user_id) AS tags
+       FROM friends f ORDER BY f.followed_at DESC LIMIT 500`).all();return e.json(t.map(s=>({...s,tags:s.tags?s.tags.split("|"):[]})))});h.get("/friends/:id/messages",async e=>{let{results:t}=await e.env.DB.prepare("SELECT id, direction, via, body, created_at FROM messages WHERE user_id = ? ORDER BY id").bind(e.req.param("id")).all();return e.json(t.map(s=>({...s,body:JSON.parse(s.body)})))});h.post("/friends/:id/push",async e=>{let{message:t}=await e.req.json();return await ze(e.env,e.req.param("id"),t),e.json({ok:!0})});h.post("/friends/:id/tags",async e=>{let{tag:t}=await e.req.json();return await G(e.env,e.req.param("id"),t),e.json({ok:!0})});h.delete("/friends/:id/tags/:tag",async e=>(await fe(e.env,e.req.param("id"),e.req.param("tag")),e.json({ok:!0})));h.get("/scenarios",async e=>{let t=e.env.DB,[s,r]=await t.batch([t.prepare("SELECT s.*, (SELECT COUNT(*) FROM enrollments e WHERE e.scenario_id = s.id) AS enrolled FROM scenarios s ORDER BY id"),t.prepare(`SELECT s.*, (SELECT COUNT(*) FROM step_deliveries d WHERE d.step_id = s.id AND d.result = 'sent') AS sent
+                  FROM scenario_steps s ORDER BY scenario_id, offset_minutes, id`)]);return e.json(s.results.map(n=>({...n,steps:r.results.filter(i=>i.scenario_id===n.id)})))});h.post("/scenarios",async e=>{let{name:t,trigger:s}=await e.req.json();return await e.env.DB.prepare("INSERT INTO scenarios (name, trigger) VALUES (?, ?)").bind(t,s==="follow"?"follow":"manual").run(),e.json({ok:!0})});h.post("/scenarios/:id/steps",async e=>{let t=await e.req.json();return await e.env.DB.prepare("INSERT INTO scenario_steps (scenario_id, offset_minutes, message, require_tag, exclude_tag, created_at) VALUES (?, ?, ?, ?, ?, ?)").bind(Number(e.req.param("id")),Number(t.offset_minutes)||0,t.message,t.require_tag||null,t.exclude_tag||null,await L(e.env)).run(),e.json({ok:!0})});h.delete("/steps/:id",async e=>(await e.env.DB.prepare("DELETE FROM scenario_steps WHERE id = ?").bind(Number(e.req.param("id"))).run(),e.json({ok:!0})));h.get("/keywords",async e=>{let{results:t}=await e.env.DB.prepare("SELECT * FROM keyword_rules ORDER BY id").all();return e.json(t)});h.post("/keywords",async e=>{let t=await e.req.json();return await e.env.DB.prepare("INSERT INTO keyword_rules (keyword, match_type, reply, add_tag, start_scenario) VALUES (?, ?, ?, ?, ?)").bind(t.keyword,t.match_type==="exact"?"exact":"contains",t.reply||null,t.add_tag||null,t.start_scenario||null).run(),e.json({ok:!0})});h.delete("/keywords/:id",async e=>(await e.env.DB.prepare("DELETE FROM keyword_rules WHERE id = ?").bind(Number(e.req.param("id"))).run(),e.json({ok:!0})));h.post("/broadcast",async e=>{let{message:t,tag:s,exclude_tag:r}=await e.req.json();return e.json(await Qe(e.env,t,s,r))});h.post("/run-scheduled",async e=>e.json(await pe(e.env)));h.use("/sim/*",async(e,t)=>{if(!x(e.env))return e.json({error:"DRY_RUN=true \u306E\u3068\u304D\u3060\u3051\u4F7F\u3048\u307E\u3059"},403);await t()});h.post("/sim/event",async e=>{let t=await e.req.json(),s={type:t.type,replyToken:"sim",source:{userId:t.userId},...t.type==="message"?{message:{type:"text",text:t.text??""}}:{},...t.type==="postback"?{postback:{data:t.data??"",displayText:t.displayText}}:{}};return await he(e.env,s,t.displayName?{displayName:t.displayName}:{}),e.json({ok:!0})});h.post("/sim/advance",async e=>{let{minutes:t}=await e.req.json();return await Je(e.env,Number(t)||0),e.json(await pe(e.env))});W.route("/api",h);var ge=class e{constructor(t,s,r=[]){this.db=t;this.sql=s;this.params=r}db;sql;params;bind(...t){return new e(this.db,this.sql,t.map(s=>s===void 0?null:s))}exec(){let t=this.db.prepare(this.sql);t.bind(this.params);let s=[];for(;t.step();)s.push(t.getAsObject());return t.free(),{success:!0,results:s,meta:{changes:this.db.getRowsModified()}}}async all(){return this.exec()}async run(){return this.exec()}async first(t){let s=this.exec().results[0]??null;return t&&s?s[t]:s}};function Ze(e){return{prepare:t=>new ge(e,t),batch:async t=>t.map(s=>s.exec()),exec:async t=>(e.exec(t),{count:0,duration:0})}}var et=`-- \u53CB\u3060\u3061\uFF08LINE\u30E6\u30FC\u30B6\u30FC\uFF09
+CREATE TABLE friends (
+  user_id      TEXT PRIMARY KEY,
+  display_name TEXT,
+  status       TEXT NOT NULL DEFAULT 'active', -- active | blocked
+  followed_at  INTEGER NOT NULL,
+  updated_at   INTEGER NOT NULL
+);
+
+-- \u30BF\u30B0
+CREATE TABLE tags (
+  id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE friend_tags (
+  user_id    TEXT NOT NULL,
+  tag_id     INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, tag_id)
+);
+
+-- \u30B7\u30CA\u30EA\u30AA\uFF08\u30B9\u30C6\u30C3\u30D7\u914D\u4FE1\uFF09
+CREATE TABLE scenarios (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  name    TEXT NOT NULL UNIQUE,
+  trigger TEXT NOT NULL DEFAULT 'manual' -- follow | manual
+);
+
+-- offset_minutes: \u30B7\u30CA\u30EA\u30AA\u958B\u59CB\u304B\u3089\u306E\u7D4C\u904E\u5206\u3002require_tag / exclude_tag \u3067\u5206\u5C90
+CREATE TABLE scenario_steps (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  scenario_id    INTEGER NOT NULL,
+  offset_minutes INTEGER NOT NULL,
+  message        TEXT NOT NULL,
+  require_tag    TEXT,
+  exclude_tag    TEXT,
+  created_at     INTEGER NOT NULL
+);
+
+CREATE TABLE enrollments (
+  user_id     TEXT NOT NULL,
+  scenario_id INTEGER NOT NULL,
+  started_at  INTEGER NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'active', -- active | stopped
+  PRIMARY KEY (user_id, scenario_id)
+);
+
+CREATE TABLE step_deliveries (
+  user_id    TEXT NOT NULL,
+  step_id    INTEGER NOT NULL,
+  result     TEXT NOT NULL, -- sent | skipped
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, step_id)
+);
+
+-- \u30AD\u30FC\u30EF\u30FC\u30C9\u81EA\u52D5\u5FDC\u7B54
+CREATE TABLE keyword_rules (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  keyword        TEXT NOT NULL,
+  match_type     TEXT NOT NULL DEFAULT 'contains', -- contains | exact
+  reply          TEXT,
+  add_tag        TEXT,
+  start_scenario TEXT
+);
+
+-- \u9001\u53D7\u4FE1\u30ED\u30B0\uFF08\u30C1\u30E3\u30C3\u30C8\u5C65\u6B74\uFF09
+CREATE TABLE messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  direction  TEXT NOT NULL, -- in | out
+  via        TEXT NOT NULL, -- message | postback | follow | reply | push | multicast
+  body       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX idx_messages_user ON messages (user_id, id);
+
+CREATE TABLE settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- ===== \u30B5\u30F3\u30D7\u30EB\u30C7\u30FC\u30BF =====
+INSERT INTO scenarios (id, name, trigger) VALUES (1, '\u30A6\u30A7\u30EB\u30AB\u30E0', 'follow');
+
+INSERT INTO scenario_steps (scenario_id, offset_minutes, message, require_tag, exclude_tag, created_at) VALUES
+  (1, 0, '{name}\u3055\u3093\u3001\u53CB\u3060\u3061\u8FFD\u52A0\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01\u{1F411}
+\u3053\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u306F\u3001\u30D6\u30ED\u30B0\u3068\u526F\u696D\u306E\u30EA\u30A2\u30EB\u306A\u8A71\u3092\u304A\u5C4A\u3051\u3057\u307E\u3059\u3002', NULL, NULL, 0),
+  (1, 0, '{"type":"text","text":"\u3088\u3051\u308C\u3070\u6559\u3048\u3066\u304F\u3060\u3055\u3044\u3002\u3044\u307E\u4E00\u756A\u8208\u5473\u304C\u3042\u308B\u306E\u306F\uFF1F","quickReply":{"items":[{"type":"action","action":{"type":"postback","label":"\u30D6\u30ED\u30B0","data":"tag=\u8208\u5473:\u30D6\u30ED\u30B0&reply=\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01\u30D6\u30ED\u30B0\u5411\u3051\u306E\u60C5\u5831\u3092\u512A\u5148\u3057\u3066\u304A\u5C4A\u3051\u3057\u307E\u3059\u306D\u3002","displayText":"\u30D6\u30ED\u30B0"}},{"type":"action","action":{"type":"postback","label":"\u526F\u696D","data":"tag=\u8208\u5473:\u526F\u696D&reply=\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01\u526F\u696D\u5411\u3051\u306E\u60C5\u5831\u3092\u512A\u5148\u3057\u3066\u304A\u5C4A\u3051\u3057\u307E\u3059\u306D\u3002","displayText":"\u526F\u696D"}}]}}', NULL, NULL, 0),
+  (1, 1440, '{name}\u3055\u3093\u3001\u6628\u65E5\u306F\u767B\u9332\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3057\u305F\u3002
+\u300C\u8CC7\u6599\u300D\u3068\u9001\u308B\u3068\u3001\u7121\u6599\u306E\u30B9\u30BF\u30FC\u30C8\u30AC\u30A4\u30C9\u3092\u304A\u6E21\u3057\u3057\u307E\u3059\u{1F4C4}', NULL, '\u8CC7\u6599\u8ACB\u6C42', 0),
+  (1, 2880, '\u3010\u30D6\u30ED\u30B0\u306B\u8208\u5473\u304C\u3042\u308B\u65B9\u3078\u3011
+\u6700\u521D\u306E10\u8A18\u4E8B\u3067\u610F\u8B58\u3057\u305F\u30443\u3064\u306E\u3053\u3068\u3092\u307E\u3068\u3081\u307E\u3057\u305F\u3002', '\u8208\u5473:\u30D6\u30ED\u30B0', NULL, 0),
+  (1, 2880, '\u3010\u526F\u696D\u306B\u8208\u5473\u304C\u3042\u308B\u65B9\u3078\u3011
+\u67081\u4E07\u5186\u3092\u6700\u521D\u306B\u7A3C\u3050\u307E\u3067\u306E\u30ED\u30FC\u30C9\u30DE\u30C3\u30D7\u3092\u307E\u3068\u3081\u307E\u3057\u305F\u3002', '\u8208\u5473:\u526F\u696D', NULL, 0),
+  (1, 4320, '\u767B\u9332\u304B\u30893\u65E5\u305F\u3061\u307E\u3057\u305F\u3002\u3053\u3053\u307E\u3067\u8AAD\u3093\u3067\u304F\u308C\u3066\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01
+\u8CEA\u554F\u304C\u3042\u308C\u3070\u3001\u3053\u306E\u30C8\u30FC\u30AF\u306B\u305D\u306E\u307E\u307E\u9001\u3063\u3066\u304F\u3060\u3055\u3044\u306D\u3002', NULL, NULL, 0);
+
+INSERT INTO keyword_rules (keyword, match_type, reply, add_tag, start_scenario) VALUES
+  ('\u8CC7\u6599', 'contains', '\u304A\u5F85\u305F\u305B\u3057\u307E\u3057\u305F\uFF01\u30B9\u30BF\u30FC\u30C8\u30AC\u30A4\u30C9\u306F\u3053\u3061\u3089\u3067\u3059\u{1F447}
+https://example.com/guide', '\u8CC7\u6599\u8ACB\u6C42', NULL),
+  ('\u3053\u3093\u306B\u3061\u306F', 'exact', '\u3053\u3093\u306B\u3061\u306F\u3001{name}\u3055\u3093\uFF01\u{1F411}', NULL, NULL);
+`;var Y=window.__DESIGN__,Rt={waitUntil(){},passThroughOnException(){},props:{}};async function Tt(){let e=await initSqlJs(),t=new e.Database;t.exec(et),Y&&t.exec(Y.sql);let s={DB:Ze(t),LINE_CHANNEL_SECRET:"demo",LINE_CHANNEL_ACCESS_TOKEN:"demo",ADMIN_TOKEN:"demo",DRY_RUN:"true"},r=(i,a)=>W.fetch(new Request(`https://demo.local${i}`,a),s,Rt),n=(i,a)=>r(`/api${i}`,{method:"POST",headers:{authorization:"Bearer demo","content-type":"application/json"},body:JSON.stringify(a)});return Y?(await n("/sim/event",{type:"follow",userId:"U_first",displayName:Y.firstFriend||"\u3055\u304F\u3089"}),r):(await n("/sim/event",{type:"follow",userId:"U_sakura",displayName:"\u3055\u304F\u3089"}),await n("/sim/event",{type:"postback",userId:"U_sakura",data:"tag=\u8208\u5473:\u30D6\u30ED\u30B0&reply=\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01\u30D6\u30ED\u30B0\u5411\u3051\u306E\u60C5\u5831\u3092\u512A\u5148\u3057\u3066\u304A\u5C4A\u3051\u3057\u307E\u3059\u306D\u3002",displayText:"\u30D6\u30ED\u30B0"}),await n("/sim/event",{type:"follow",userId:"U_kenta",displayName:"\u3051\u3093\u305F"}),await n("/sim/event",{type:"message",userId:"U_kenta",text:"\u8CC7\u6599\u304F\u3060\u3055\u3044"}),await n("/sim/advance",{minutes:1441}),r)}window.__DEMO__=Tt();})();
+</script>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>LINE配信ラボ</h1>
+      <p id="brand-sub">Cloudflare Workers + D1 だけで動く、ステップ配信・タグ・自動応答</p>
+    </div>
+    <div class="spacer"></div>
+    <span id="mode" class="pill dry" hidden></span>
+    <div class="clock" id="clock" hidden>いま <strong class="mono" id="clock-now"></strong></div>
+  </header>
+
+  <div id="login" class="section login" hidden>
+    <h2>管理トークンを入力</h2>
+    <p class="lead">Worker の環境変数 <span class="mono">ADMIN_TOKEN</span> に設定した値です。</p>
+    <form id="login-form" class="inline">
+      <input id="token" type="password" autocomplete="current-password" class="field" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)">
+      <button class="btn primary">開く</button>
+    </form>
+  </div>
+
+  <div id="loading" class="loading">読み込み中…</div>
+
+  <div id="main" class="layout" hidden>
+    <!-- テスト用トーク -->
+    <aside class="phone" aria-label="テスト用トーク画面">
+      <div class="phone-head">
+        <div class="row">
+          <label for="sim-user">テストユーザー</label>
+          <select id="sim-user"></select>
+        </div>
+        <div class="row" id="sim-actions">
+          <button class="btn small" id="sim-new">＋ 新しい人で友だち追加</button>
+          <button class="btn small" id="sim-follow">友だち追加</button>
+          <button class="btn small" id="sim-block">ブロック</button>
+        </div>
+      </div>
+      <div class="talk" id="talk"></div>
+      <div class="quick" id="quick" hidden></div>
+      <form class="compose" id="compose">
+        <input id="compose-text" placeholder="メッセージを送る（キーワードを試せます）" autocomplete="off">
+        <button class="btn primary">送信</button>
+      </form>
+      <div class="timebar" id="timebar">
+        <span>時間を進める</span>
+        <button class="btn small" data-adv="60">+1時間</button>
+        <button class="btn small" data-adv="1440">+1日</button>
+        <button class="btn small" data-adv="4320">+3日</button>
+      </div>
+    </aside>
+
+    <!-- 管理画面 -->
+    <main class="admin">
+      <nav class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-tab="overview" aria-selected="true">概要</button>
+        <button role="tab" data-tab="friends" aria-selected="false">友だち</button>
+        <button role="tab" data-tab="steps" aria-selected="false">ステップ配信</button>
+        <button role="tab" data-tab="keywords" aria-selected="false">キーワード応答</button>
+        <button role="tab" data-tab="broadcast" aria-selected="false">一斉配信</button>
+        <button role="tab" data-tab="how" aria-selected="false">しくみ</button>
+      </nav>
+
+      <section class="panel" data-panel="overview">
+        <div class="stats" id="stats"></div>
+        <div class="section">
+          <h2>今月の通数（プッシュ配信）</h2>
+          <p class="lead">返信（reply）は無料、プッシュと一斉配信は通数にカウントされます。LINEの無料プラン（コミュニケーションプラン）は月200通までです。</p>
+          <div class="quota" id="quota"></div>
+        </div>
+        <div class="section">
+          <h2>タグ別の人数</h2>
+          <div class="tagbars" id="tagbars"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="friends" hidden>
+        <div class="section">
+          <h2>友だち一覧</h2>
+          <p class="lead">行をクリックすると左のトーク画面に切り替わります。タグはここで手動でも付けられます。</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>名前</th><th>状態</th><th>タグ</th><th>登録</th></tr></thead>
+            <tbody id="friends-body"></tbody>
+          </table></div>
+        </div>
+        <div class="section">
+          <h2 id="push-title">個別メッセージ</h2>
+          <form id="push-form" class="inline">
+            <input id="push-text" class="field" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)" placeholder="{name}さん、こんにちは！">
+            <button class="btn primary">送信</button>
+          </form>
+          <p class="hint">選択中の友だちにプッシュで送ります（1通カウント）。<span class="mono">{name}</span> は表示名に置き換わります。</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="steps" hidden>
+        <div id="scenarios"></div>
+        <div class="section">
+          <h2>ステップを追加</h2>
+          <form id="step-form" class="grid">
+            <div class="field">
+              <label for="step-scenario">シナリオ</label>
+              <select id="step-scenario"></select>
+            </div>
+            <div class="field">
+              <label for="step-offset">登録から</label>
+              <div class="inline">
+                <input id="step-offset" type="number" min="0" value="5" class="mono">
+                <select id="step-unit"><option value="1">分後</option><option value="60">時間後</option><option value="1440" selected>日後</option></select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="step-req">このタグがある人だけ</label>
+              <input id="step-req" list="tag-list" placeholder="（指定なし）">
+            </div>
+            <div class="field">
+              <label for="step-exc">このタグがある人は除く</label>
+              <input id="step-exc" list="tag-list" placeholder="（指定なし）">
+            </div>
+            <div class="field full">
+              <label for="step-msg">メッセージ</label>
+              <textarea id="step-msg" required>{name}さん、登録から5日たちました。</textarea>
+            </div>
+            <div class="full inline" style="align-items:center">
+              <button class="btn primary">追加</button>
+              <p class="hint">すでに登録済みの人にも、まだ時間が来ていなければ届きます。</p>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="keywords" hidden>
+        <div class="section">
+          <h2>キーワード自動応答</h2>
+          <p class="lead">受信したメッセージに上から順に照合し、最初に当たったルールで返信します。返信は無料です。</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>キーワード</th><th>一致</th><th>返信</th><th>付けるタグ</th><th></th></tr></thead>
+            <tbody id="kw-body"></tbody>
+          </table></div>
+        </div>
+        <div class="section">
+          <h2>ルールを追加</h2>
+          <form id="kw-form" class="grid">
+            <div class="field"><label for="kw-word">キーワード</label><input id="kw-word" required value="セミナー"></div>
+            <div class="field"><label for="kw-match">一致の仕方</label><select id="kw-match"><option value="contains">含む</option><option value="exact">完全一致</option></select></div>
+            <div class="field"><label for="kw-tag">付けるタグ</label><input id="kw-tag" list="tag-list" value="セミナー希望"></div>
+            <div class="field full"><label for="kw-reply">返信メッセージ</label><textarea id="kw-reply">{name}さん、セミナーの日程はこちらです📅
+https://example.com/seminar</textarea></div>
+            <div class="full"><button class="btn primary">追加</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="broadcast" hidden>
+        <div class="section">
+          <h2>一斉配信・セグメント配信</h2>
+          <form id="bc-form" class="grid">
+            <div class="field"><label for="bc-tag">送る相手</label><select id="bc-tag"></select></div>
+            <div class="field"><label for="bc-exc">除外するタグ</label><select id="bc-exc"></select></div>
+            <div class="field full"><label for="bc-msg">メッセージ</label><textarea id="bc-msg" required>新しいブログ記事を公開しました！
+https://example.com/new-post</textarea></div>
+            <div class="full inline" style="align-items:center">
+              <button class="btn primary">配信する</button>
+              <p class="result" id="bc-result"></p>
+            </div>
+          </form>
+          <p class="hint">本文に <span class="mono">{name}</span> がなければ multicast（500人ずつまとめて送信）、あれば1人ずつ push します。どちらも人数分の通数がかかります。</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="how" hidden>
+        <div class="section">
+          <h2>Cloudflareだけで動くしくみ</h2>
+          <p class="lead">Lステップなどのツールは、LINE公式の Messaging API の上に「友だちのデータベース」と「時間になったら送る仕組み」を載せたものです。その2つを Cloudflare の無料枠で用意すると、同じことが自前でできます。</p>
+          <div class="flow">
+            <div class="node"><b>LINE公式アカウント</b><span>友だち追加・メッセージ・ボタンのタップが届く</span><span class="mono">Messaging API</span></div>
+            <div class="node"><b>Workers</b><span>Webhookを受けてタグ付け・自動返信。管理画面もここから配信</span><span class="mono">POST /webhook</span></div>
+            <div class="node"><b>D1（SQLite）</b><span>友だち・タグ・シナリオ・送信履歴を保存</span><span class="mono">friends / tags / …</span></div>
+            <div class="node"><b>Cron Triggers</b><span>毎分起動して、時間が来たステップをプッシュ</span><span class="mono">* * * * *</span></div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>有料ツールとの違い</h2>
+          <dl class="compare">
+            <div><dt>月額</dt><dd>Cloudflare は無料枠で始められる。LINE側の通数料金はどちらでも同じようにかかる</dd></div>
+            <div><dt>データの持ち主</dt><dd>タグや履歴は自分の D1 にあるので、SQLで書き出せる。ツールの乗り換えでタグを失う問題がない</dd></div>
+            <div><dt>自分で用意するもの</dt><dd>フォーム・予約・決済連携・リッチメニュー切り替え・権限管理・障害対応などは自作か、既存のOSSを使う</dd></div>
+            <div><dt>このデモの範囲</dt><dd>友だち管理、タグ、条件分岐つきステップ配信、キーワード応答、ボタン（postback）でのタグ付け、セグメント配信</dd></div>
+          </dl>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<datalist id="tag-list"></datalist>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  let demoFetch = null;
+  let token = store.get('lab-token') || '';
+  const state = { stats: null, friends: [], selected: null, dryRun: false, tab: 'overview' };
+
+  async function api(method, path, body) {
+    const init = { method, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (demoFetch ? 'demo' : token) } };
+    if (body !== undefined) init.body = JSON.stringify(body);
+    const res = demoFetch ? await demoFetch('/api' + path, init) : await fetch('/api' + path, init);
+    if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+  }
+
+  function toast(text) {
+    const t = $('#toast');
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  const fmt = (ms) => {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const offsetLabel = (m) => {
+    if (m === 0) return '登録直後';
+    if (m % 1440 === 0) return `${m / 1440}日後`;
+    if (m % 60 === 0) return `${m / 60}時間後`;
+    return `${m}分後`;
+  };
+  const msgText = (b) => b.type === 'text' ? b.text : `[${b.type}]`;
+  const friendName = (f) => f?.display_name || f?.user_id?.slice(0, 10) || '';
+
+  // ---------- 描画 ----------
+  function renderStats() {
+    const s = state.stats;
+    const by = Object.fromEntries(s.sent.map((r) => [r.via, r.n]));
+    const paid = (by.push || 0) + (by.multicast || 0);
+    $('#stats').innerHTML = [
+      ['友だち', s.friends, 'ブロック中を除く'],
+      ['ブロック', s.blocked, ''],
+      ['返信（無料）', by.reply || 0, '自動応答・登録直後のステップ'],
+      ['プッシュ（通数）', paid, 'ステップ・個別・一斉配信'],
+    ].map(([l, v, n]) => `<div class="stat"><span class="label">${l}</span><span class="value">${v}</span><span class="note">${n}</span></div>`).join('');
+    const pct = Math.min(100, (paid / 200) * 100);
+    $('#quota').innerHTML = `<div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="legend"><span class="mono">${paid} / 200 通</span><span>超えるとライトプラン（月5,000円・5,000通）が必要</span></div>`;
+    const max = Math.max(1, ...s.tags.map((t) => t.n));
+    $('#tagbars').innerHTML = s.tags.length
+      ? s.tags.map((t) => `<div class="tagbar"><span class="chip">${esc(t.name)}</span><span class="track"><i style="width:${(t.n / max) * 100}%"></i></span><span class="mono">${t.n}</span></div>`).join('')
+      : '<p class="hint">まだタグはありません。トーク画面でボタンを押したり「資料」と送ると付きます。</p>';
+    $('#tag-list').innerHTML = s.tags.map((t) => `<option value="${esc(t.name)}">`).join('');
+    const opts = '<option value="">全員</option>' + s.tags.map((t) => `<option value="${esc(t.name)}">「${esc(t.name)}」がある人</option>`).join('');
+    const keep = [$('#bc-tag').value, $('#bc-exc').value];
+    $('#bc-tag').innerHTML = opts;
+    $('#bc-exc').innerHTML = '<option value="">なし</option>' + s.tags.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+    $('#bc-tag').value = keep[0]; $('#bc-exc').value = keep[1];
+    $('#mode').hidden = false;
+    $('#mode').className = 'pill ' + (s.dryRun ? 'dry' : 'live');
+    $('#mode').textContent = s.dryRun ? 'テストモード：LINEには送信しません' : '本番：LINEに送信します';
+    $('#clock').hidden = false;
+    $('#clock-now').textContent = fmt(s.now);
+  }
+
+  function renderFriends() {
+    $('#friends-body').innerHTML = state.friends.map((f) => `
+      <tr class="clickable ${f.user_id === state.selected ? 'sel' : ''}" data-user="${esc(f.user_id)}">
+        <td>${esc(friendName(f))}</td>
+        <td class="${f.status === 'active' ? 'status-active' : 'status-blocked'}">${f.status === 'active' ? '有効' : 'ブロック'}</td>
+        <td><div class="tags-cell">${f.tags.map((t) => `<span class="chip">${esc(t)}<button data-untag="${esc(t)}" aria-label="${esc(t)}を外す">×</button></span>`).join('')}
+          <input data-addtag list="tag-list" placeholder="＋タグ" aria-label="タグを追加"></div></td>
+        <td class="mono">${fmt(f.followed_at)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" class="hint">まだ友だちがいません。</td></tr>';
+    const sel = $('#sim-user');
+    sel.innerHTML = state.friends.map((f) => `<option value="${esc(f.user_id)}">${esc(friendName(f))}${f.status === 'blocked' ? '（ブロック中）' : ''}</option>`).join('');
+    if (state.selected) sel.value = state.selected;
+    const cur = state.friends.find((f) => f.user_id === state.selected);
+    $('#push-title').textContent = cur ? `個別メッセージ（${friendName(cur)}さんへ）` : '個別メッセージ';
+    $('#sim-follow').disabled = !cur || cur.status === 'active';
+    $('#sim-block').disabled = !cur || cur.status !== 'active';
+  }
+
+  async function renderTalk() {
+    const talk = $('#talk');
+    const quick = $('#quick');
+    if (!state.selected) {
+      talk.innerHTML = '<p class="empty-talk">「新しい人で友だち追加」を押すと、登録直後のメッセージが届きます。</p>';
+      quick.hidden = true; return;
+    }
+    const msgs = await api('GET', `/friends/${encodeURIComponent(state.selected)}/messages`);
+    let lastQuick = null;
+    talk.innerHTML = msgs.map((m) => {
+      const b = m.body;
+      if (b.type === 'follow') return `<div class="sys">${fmt(m.created_at)} 友だち追加</div>`;
+      if (b.type === 'unfollow') return `<div class="sys">${fmt(m.created_at)} ブロック</div>`;
+      if (m.direction === 'in') {
+        const text = b.type === 'postback' ? (b.displayText || `（ボタン：${b.data}）`) : msgText(b);
+        lastQuick = null;
+        return `<div class="msg in"><div class="bubble">${esc(text)}</div><div class="meta"><span>${fmt(m.created_at)}</span></div></div>`;
+      }
+      lastQuick = b.quickReply ? b.quickReply.items : null;
+      const free = m.via === 'reply';
+      return `<div class="msg out"><div class="bubble">${esc(msgText(b))}</div>
+        <div class="meta"><span class="via ${free ? 'free' : 'paid'}">${free ? 'reply・無料' : m.via + '・1通'}</span><span>${fmt(m.created_at)}</span></div></div>`;
+    }).join('') || '<p class="empty-talk">まだメッセージはありません。</p>';
+    talk.scrollTop = talk.scrollHeight;
+    const cur = state.friends.find((f) => f.user_id === state.selected);
+    if (lastQuick && cur?.status === 'active') {
+      quick.hidden = false;
+      quick.innerHTML = lastQuick.map((it, i) => `<button data-q="${i}">${esc(it.action.label)}</button>`).join('');
+      quick.onclick = async (e) => {
+        const btn = e.target.closest('[data-q]');
+        if (!btn) return;
+        const a = lastQuick[Number(btn.dataset.q)].action;
+        if (a.type === 'postback') await sim({ type: 'postback', data: a.data, displayText: a.displayText || a.label });
+        else await sim({ type: 'message', text: a.text || a.label });
+      };
+    } else {
+      quick.hidden = true;
+    }
+  }
+
+  async function renderScenarios() {
+    const list = await api('GET', '/scenarios');
+    $('#step-scenario').innerHTML = list.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    $('#scenarios').innerHTML = list.map((s) => `
+      <div class="section">
+        <h2>シナリオ「${esc(s.name)}」</h2>
+        <p class="lead">${s.trigger === 'follow' ? '友だち追加で自動的に開始' : 'キーワードやボタンから開始'}・登録者 <span class="mono">${s.enrolled}</span> 人。時間は「登録してから」の経過で数えます。</p>
+        <div class="steps">${s.steps.map((st) => {
+          let preview = st.message;
+          try { if (preview.trim().startsWith('{')) { const j = JSON.parse(preview); preview = (j.text || `[${j.type}]`) + (j.quickReply ? '\n［ボタン：' + j.quickReply.items.map((i) => i.action.label).join(' / ') + '］' : ''); } } catch {}
+          return `<div class="step">
+            <div class="when">${offsetLabel(st.offset_minutes)}</div>
+            <div class="body"><div class="text">${esc(preview)}</div>
+              <div class="conds">${st.require_tag ? `<span class="chip req">「${esc(st.require_tag)}」がある人だけ</span>` : ''}${st.exclude_tag ? `<span class="chip exc">「${esc(st.exclude_tag)}」の人は除く</span>` : ''}${!st.require_tag && !st.exclude_tag ? '全員' : ''}<span>・送信済み <span class="mono">${st.sent}</span></span></div></div>
+            <button class="btn ghost small" data-delstep="${st.id}" aria-label="このステップを削除">削除</button>
+          </div>`;
+        }).join('')}</div>
+      </div>`).join('');
+  }
+
+  async function renderKeywords() {
+    const list = await api('GET', '/keywords');
+    $('#kw-body').innerHTML = list.map((k) => `<tr>
+      <td><b>${esc(k.keyword)}</b></td><td>${k.match_type === 'exact' ? '完全一致' : '含む'}</td>
+      <td style="white-space:pre-wrap;min-width:200px">${esc(k.reply || '')}</td>
+      <td>${k.add_tag ? `<span class="chip">${esc(k.add_tag)}</span>` : ''}</td>
+      <td><button class="btn ghost small" data-delkw="${k.id}">削除</button></td></tr>`).join('');
+  }
+
+  async function refresh() {
+    const [stats, friends] = await Promise.all([api('GET', '/stats'), api('GET', '/friends')]);
+    state.stats = stats; state.friends = friends; state.dryRun = stats.dryRun;
+    if (!state.selected || !friends.some((f) => f.user_id === state.selected)) state.selected = friends[0]?.user_id || null;
+    $('#sim-actions').hidden = !stats.dryRun;
+    $('#timebar').hidden = !stats.dryRun;
+    $('#compose').hidden = !stats.dryRun;
+    renderStats(); renderFriends();
+    await renderTalk();
+    if (state.tab === 'steps') await renderScenarios();
+    if (state.tab === 'keywords') await renderKeywords();
+  }
+
+  // ---------- 操作 ----------
+  async function sim(ev) {
+    if (!state.selected && ev.type !== 'follow') return;
+    await api('POST', '/sim/event', { userId: state.selected, ...ev });
+    await refresh();
+  }
+
+  let seq = 1;
+  const names = ['ゆい', 'たくみ', 'みお', 'そうた', 'はな', 'りく'];
+  $('#sim-new').onclick = async () => {
+    const used = new Set(state.friends.map((f) => f.display_name));
+    const name = names.find((n) => !used.has(n)) || `テスト${seq}`;
+    const id = 'U_test_' + Date.now().toString(36) + (seq++);
+    await api('POST', '/sim/event', { type: 'follow', userId: id, displayName: name });
+    state.selected = id;
+    await refresh();
+    toast(`${name}さんが友だち追加しました`);
+  };
+  $('#sim-follow').onclick = () => sim({ type: 'follow' });
+  $('#sim-block').onclick = () => sim({ type: 'unfollow' });
+  $('#sim-user').onchange = async (e) => { state.selected = e.target.value; renderFriends(); await renderTalk(); };
+  $('#compose').onsubmit = async (e) => {
+    e.preventDefault();
+    const text = $('#compose-text').value.trim();
+    if (!text) return;
+    $('#compose-text').value = '';
+    await sim({ type: 'message', text });
+  };
+  $('#timebar').onclick = async (e) => {
+    const b = e.target.closest('[data-adv]');
+    if (!b) return;
+    const r = await api('POST', '/sim/advance', { minutes: Number(b.dataset.adv) });
+    await refresh();
+    toast(r.pushes ? `${b.textContent.replace('+', '')}進めました。${r.users}人にステップを配信` : `${b.textContent.replace('+', '')}進めました。この間に届くステップはありません`);
+  };
+
+  $('#tabs').onclick = async (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (!b) return;
+    state.tab = b.dataset.tab;
+    document.querySelectorAll('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== state.tab; });
+    if (state.tab === 'steps') await renderScenarios();
+    if (state.tab === 'keywords') await renderKeywords();
+  };
+
+  $('#friends-body').onclick = async (e) => {
+    const un = e.target.closest('[data-untag]');
+    const row = e.target.closest('[data-user]');
+    if (!row) return;
+    if (un) {
+      await api('DELETE', `/friends/${encodeURIComponent(row.dataset.user)}/tags/${encodeURIComponent(un.dataset.untag)}`);
+      return refresh();
+    }
+    if (e.target.matches('input')) return;
+    state.selected = row.dataset.user;
+    renderFriends(); await renderTalk();
+  };
+  $('#friends-body').onkeydown = async (e) => {
+    if (e.key !== 'Enter' || !e.target.matches('[data-addtag]')) return;
+    const tag = e.target.value.trim();
+    if (!tag) return;
+    await api('POST', `/friends/${encodeURIComponent(e.target.closest('[data-user]').dataset.user)}/tags`, { tag });
+    await refresh();
+  };
+  $('#push-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const message = $('#push-text').value.trim();
+    if (!message || !state.selected) return;
+    await api('POST', `/friends/${encodeURIComponent(state.selected)}/push`, { message });
+    $('#push-text').value = '';
+    await refresh(); toast('送信しました');
+  };
+
+  $('#scenarios').onclick = async (e) => {
+    const b = e.target.closest('[data-delstep]');
+    if (!b) return;
+    await api('DELETE', `/steps/${b.dataset.delstep}`);
+    await renderScenarios(); toast('ステップを削除しました');
+  };
+  $('#step-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await api('POST', `/scenarios/${$('#step-scenario').value}/steps`, {
+      offset_minutes: Number($('#step-offset').value) * Number($('#step-unit').value),
+      message: $('#step-msg').value,
+      require_tag: $('#step-req').value.trim(),
+      exclude_tag: $('#step-exc').value.trim(),
+    });
+    await renderScenarios(); toast('ステップを追加しました');
+  };
+
+  $('#kw-body').onclick = async (e) => {
+    const b = e.target.closest('[data-delkw]');
+    if (!b) return;
+    await api('DELETE', `/keywords/${b.dataset.delkw}`);
+    await renderKeywords();
+  };
+  $('#kw-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await api('POST', '/keywords', { keyword: $('#kw-word').value.trim(), match_type: $('#kw-match').value, reply: $('#kw-reply').value, add_tag: $('#kw-tag').value.trim() });
+    await renderKeywords(); toast(`「${$('#kw-word').value}」のルールを追加しました`);
+  };
+
+  $('#bc-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const r = await api('POST', '/broadcast', { message: $('#bc-msg').value, tag: $('#bc-tag').value, exclude_tag: $('#bc-exc').value });
+    $('#bc-result').textContent = `${r.recipients}人に配信しました（${r.recipients}通）`;
+    await refresh();
+  };
+
+  // ---------- 起動 ----------
+  function showLogin() {
+    $('#loading').hidden = true; $('#main').hidden = true; $('#login').hidden = false;
+  }
+  $('#login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    token = $('#token').value; store.set('lab-token', token);
+    $('#login').hidden = true;
+    await start();
+  };
+
+  async function start() {
+    try {
+      await refresh();
+      $('#loading').hidden = true; $('#main').hidden = false;
+      if (!demoFetch && !state.dryRun) setInterval(() => refresh().catch(() => {}), 10000);
+    } catch (err) {
+      if (err.message !== 'unauthorized') { $('#loading').textContent = '読み込めませんでした：' + err.message; }
+    }
+  }
+
+  window.addEventListener('error', (e) => { toast('エラー：' + e.message); });
+  window.addEventListener('unhandledrejection', (e) => { if (e.reason?.message !== 'unauthorized') toast('エラー：' + (e.reason?.message || e.reason)); });
+
+  if (window.__DESIGN__?.account) {
+    $('#brand-sub').textContent = `${window.__DESIGN__.account} の設計デモ（ステップ配信・タグ・自動応答）`;
+  }
+  if (window.__DEMO__) {
+    window.__DEMO__.then((f) => { demoFetch = f; start(); }, (err) => { $('#loading').textContent = 'デモを起動できませんでした：' + err.message; });
+  } else if (!token) {
+    showLogin();
+  } else {
+    start();
+  }
+})();
+</script>

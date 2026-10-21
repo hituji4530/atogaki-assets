@@ -4,6 +4,10 @@ import type { Env } from '../src/env';
 import { createD1 } from './d1-sqljs';
 import schema from '../migrations/0001_init.sql';
 
+// line-builder スキルが差し込む設計（なければ同梱のサンプルで起動）
+type Design = { account?: string; sql: string; firstFriend?: string };
+const design = (window as unknown as { __DESIGN__?: Design }).__DESIGN__;
+
 declare const initSqlJs: () => Promise<{ Database: new () => Parameters<typeof createD1>[0] }>;
 
 const ctx = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
@@ -12,6 +16,7 @@ async function boot() {
   const SQL = await initSqlJs();
   const db = new SQL.Database();
   db.exec(schema);
+  if (design) db.exec(design.sql);
   const env: Env = {
     DB: createD1(db),
     LINE_CHANNEL_SECRET: 'demo',
@@ -22,6 +27,12 @@ async function boot() {
   const call = (path: string, init?: RequestInit) => app.fetch(new Request(`https://demo.local${path}`, init), env, ctx);
   const post = (path: string, body: unknown) =>
     call(`/api${path}`, { method: 'POST', headers: { authorization: 'Bearer demo', 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+  if (design) {
+    // 設計デモ：1人が友だち追加した直後の状態から始める
+    await post('/sim/event', { type: 'follow', userId: 'U_first', displayName: design.firstFriend || 'さくら' });
+    return call;
+  }
 
   // サンプル：2人が登録済みで、1日経過した状態から始める
   await post('/sim/event', { type: 'follow', userId: 'U_sakura', displayName: 'さくら' });

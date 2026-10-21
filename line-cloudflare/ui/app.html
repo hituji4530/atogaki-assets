@@ -197,7 +197,7 @@ form.grid .full { grid-column: 1 / -1; }
   <header class="top">
     <div class="brand">
       <h1>LINE配信ラボ</h1>
-      <p>Cloudflare Workers + D1 だけで動く、ステップ配信・タグ・自動応答</p>
+      <p id="brand-sub">Cloudflare Workers + D1 だけで動く、ステップ配信・タグ・自動応答</p>
     </div>
     <div class="spacer"></div>
     <span id="mode" class="pill dry" hidden></span>
@@ -232,7 +232,7 @@ form.grid .full { grid-column: 1 / -1; }
       <div class="talk" id="talk"></div>
       <div class="quick" id="quick" hidden></div>
       <form class="compose" id="compose">
-        <input id="compose-text" placeholder="メッセージを送る（例：資料）" autocomplete="off">
+        <input id="compose-text" placeholder="メッセージを送る（キーワードを試せます）" autocomplete="off">
         <button class="btn primary">送信</button>
       </form>
       <div class="timebar" id="timebar">
@@ -697,6 +697,9 @@ https://example.com/new-post</textarea></div>
   window.addEventListener('error', (e) => { toast('エラー：' + e.message); });
   window.addEventListener('unhandledrejection', (e) => { if (e.reason?.message !== 'unauthorized') toast('エラー：' + (e.reason?.message || e.reason)); });
 
+  if (window.__DESIGN__?.account) {
+    $('#brand-sub').textContent = `${window.__DESIGN__.account} の設計デモ（ステップ配信・タグ・自動応答）`;
+  }
   if (window.__DEMO__) {
     window.__DEMO__.then((f) => { demoFetch = f; start(); }, (err) => { $('#loading').textContent = 'デモを起動できませんでした：' + err.message; });
   } else if (!token) {
