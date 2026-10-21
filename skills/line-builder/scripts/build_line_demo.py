@@ -7,6 +7,7 @@
 出力:
   <slug>.sql        … line-cloudflare の D1 に流し込む設計データ（初期構築用）
   <slug>-demo.html  … クライアントに見せられる動くデモ（Artifact としてそのまま公開できる）
+  <slug>-proposal.html … クライアント向けの提案ページ（お客さまの体験・自動の返事・できること・費用の目安）
 
 標準ライブラリだけで動く。設計にLINEの制限違反があればエラーで止まる。
 """
@@ -18,6 +19,8 @@ import sys
 import urllib.request
 from pathlib import Path
 
+PROPOSAL_TEMPLATE = Path(__file__).resolve().parent.parent / 'assets' / 'proposal-template.html'
+PROPOSAL_MARKER = '<!--LINE_PROPOSAL-->'
 DEFAULT_TEMPLATE = 'https://raw.githubusercontent.com/hituji4530/atogaki-assets/main/line-cloudflare/demo-template.html'
 MARKER = '<!--LINE_DESIGN-->'
 
@@ -193,6 +196,12 @@ def main():
     if design.get('account'):
         html = html.replace('<title>LINE配信ラボ</title>', f'<title>{htmllib.escape(design["account"])} LINE設計</title>', 1)
 
+    proposal_tpl = PROPOSAL_TEMPLATE.read_text(encoding='utf-8')
+    proposal_json = json.dumps(design, ensure_ascii=False).replace('<', '\\u003c')
+    proposal = proposal_tpl.replace(PROPOSAL_MARKER, f'<script>window.__PROPOSAL__ = {proposal_json};</script>', 1)
+    if design.get('account'):
+        proposal = proposal.replace('<title>LINE活用のご提案</title>', f'<title>{htmllib.escape(design["account"])} LINE活用のご提案</title>', 1)
+
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     slug = args.slug or Path(args.design).stem
@@ -200,6 +209,10 @@ def main():
     (out / f'{slug}-demo.html').write_text(html, encoding='utf-8')
     print(f'OK: {out / (slug + ".sql")}')
     print(f'OK: {out / (slug + "-demo.html")}')
+    (out / f'{slug}-proposal.html').write_text(proposal, encoding='utf-8')
+    print(f'OK: {out / (slug + "-proposal.html")}')
+    if not design.get('proposal'):
+        print('注意: proposal がないので、提案ページは最低限の内容です（SKILL.md の 3-1 を参照）')
     for w in warnings:
         print(f'注意: {w}')
 
