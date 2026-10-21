@@ -1,0 +1,26 @@
+{
+  "name": "line-cloudflare",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers + D1 だけで動く、Lステップ風のLINE公式アカウント運用ツール（最小構成）",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:demo": "node scripts/build.mjs --demo",
+    "db:init:local": "wrangler d1 migrations apply line-cloudflare --local",
+    "dev": "npm run build && wrangler dev --test-scheduled",
+    "typecheck": "tsc",
+    "db:init": "wrangler d1 migrations apply line-cloudflare --remote",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261021.1",
+    "esbuild": "^0.28.2",
+    "sql.js": "^1.10.3",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.151.3"
+  },
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,708 @@
+<title>LINE配信ラボ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* レイアウト：左にテスト用のトーク画面（スマホ）、右に運用者の管理画面。狭い画面では縦に積む */
+:root {
+  --paper: #f3f5f1;
+  --surface: #ffffff;
+  --ink: #1b221e;
+  --muted: #5f6b64;
+  --line: #dbe1db;
+  --accent: #0d7349;
+  --accent-soft: #e0efe6;
+  --warn: #9a5b00;
+  --warn-soft: #fbf0dc;
+  --danger: #b3261e;
+  --talk-bg: #b9c9d6;
+  --bubble-bot: #ffffff;
+  --bubble-user: #9be27a;
+  --bubble-ink: #1b221e;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141a17; --surface: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #2e3a34;
+    --accent: #4cc48d; --accent-soft: #1f3a2d; --warn: #e9b35c; --warn-soft: #3a2e1a; --danger: #f2867e;
+    --talk-bg: #22303b; --bubble-bot: #2d3a44; --bubble-user: #3f7a2a; --bubble-ink: #eef3ef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141a17; --surface: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #2e3a34;
+  --accent: #4cc48d; --accent-soft: #1f3a2d; --warn: #e9b35c; --warn-soft: #3a2e1a; --danger: #f2867e;
+  --talk-bg: #22303b; --bubble-bot: #2d3a44; --bubble-user: #3f7a2a; --bubble-ink: #eef3ef;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ヘッダー */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 18px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--font-display); font-size: 24px; letter-spacing: .02em; }
+.brand p { margin: 0; color: var(--muted); font-size: 13px; }
+.top .spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.pill.dry { background: var(--warn-soft); color: var(--warn); }
+.pill.live { background: var(--accent-soft); color: var(--accent); }
+.clock { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.clock strong { color: var(--ink); font-weight: 500; }
+
+.layout { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* スマホ（テスト用トーク） */
+.phone {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 22px;
+  overflow: hidden; display: flex; flex-direction: column; height: min(760px, calc(100vh - 40px)); min-height: 520px;
+}
+@media (max-width: 920px) { .phone { position: static; height: 640px; max-width: 420px; width: 100%; margin: 0 auto; } }
+.phone-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.phone-head .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.phone-head label { font-size: 12px; color: var(--muted); }
+.phone-head select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.talk { flex: 1; overflow-y: auto; background: var(--talk-bg); padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.msg { display: flex; flex-direction: column; max-width: 82%; gap: 2px; }
+.msg.out { align-self: flex-start; }
+.msg.in { align-self: flex-end; align-items: flex-end; }
+.bubble { padding: 8px 12px; border-radius: 16px; white-space: pre-wrap; word-break: break-word; color: var(--bubble-ink); font-size: 13.5px; line-height: 1.55; }
+.msg.out .bubble { background: var(--bubble-bot); border-top-left-radius: 4px; }
+.msg.in .bubble { background: var(--bubble-user); border-top-right-radius: 4px; }
+.meta { font-size: 10.5px; color: var(--ink); opacity: .62; display: flex; gap: 6px; }
+.via { font-family: var(--font-mono); font-size: 10px; padding: 0 5px; border-radius: 4px; background: var(--surface); opacity: .9; }
+.via.free { color: var(--accent); }
+.via.paid { color: var(--warn); }
+.sys { align-self: center; font-size: 11px; color: var(--ink); background: color-mix(in srgb, var(--surface) 55%, transparent); padding: 2px 10px; border-radius: 999px; }
+.empty-talk { margin: auto; text-align: center; color: var(--ink); opacity: .7; font-size: 13px; max-width: 240px; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px 0; background: var(--talk-bg); }
+.quick button { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.compose { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.compose input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+.timebar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--paper); }
+.timebar span { font-size: 12px; color: var(--muted); margin-right: 2px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
+.btn.small { padding: 3px 9px; font-size: 12px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--danger); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* 管理画面 */
+.admin { min-width: 0; display: grid; gap: 16px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 500; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel { display: grid; gap: 16px; }
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.section h2 { font-size: 15px; font-weight: 700; }
+.section .lead { margin: 0; color: var(--muted); font-size: 13px; max-width: 65ch; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat .label { font-size: 12px; color: var(--muted); }
+.stat .value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stat .note { font-size: 11.5px; color: var(--muted); }
+
+.quota { display: grid; gap: 6px; }
+.quota .bar { height: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.quota .bar i { display: block; height: 100%; background: var(--warn); }
+.quota .legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); gap: 8px; flex-wrap: wrap; }
+
+.tagbars { display: grid; gap: 6px; }
+.tagbar { display: grid; grid-template-columns: 120px minmax(0, 1fr) 32px; gap: 10px; align-items: center; font-size: 13px; }
+.tagbar .track { height: 8px; background: var(--paper); border-radius: 999px; overflow: hidden; }
+.tagbar .track i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+.chip button { border: 0; background: none; padding: 0; color: inherit; opacity: .7; font-size: 12px; line-height: 1; }
+.chip.req { background: var(--accent-soft); color: var(--accent); }
+.chip.exc { background: var(--warn-soft); color: var(--warn); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.sel td { background: var(--accent-soft); }
+tr.sel .chip { background: var(--surface); }
+tr.clickable { cursor: pointer; }
+.tags-cell { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.tags-cell input { width: 96px; padding: 1px 6px; border: 1px dashed var(--line); border-radius: 6px; background: transparent; font-size: 12px; }
+.status-blocked { color: var(--danger); font-size: 12px; }
+.status-active { color: var(--accent); font-size: 12px; }
+
+.steps { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.step:first-child { border-top: 0; }
+.step .when { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); font-weight: 500; }
+.step .body { min-width: 0; display: grid; gap: 6px; }
+.step .text { white-space: pre-wrap; word-break: break-word; background: var(--paper); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.step .conds { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
+@media (max-width: 560px) { .step { grid-template-columns: minmax(0, 1fr) auto; } .step .when { grid-column: 1 / -1; } }
+
+form.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
+form.grid .full { grid-column: 1 / -1; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.field textarea { min-height: 72px; resize: vertical; }
+.inline { display: flex; gap: 6px; }
+.inline input { flex: 1; min-width: 0; }
+.inline select { width: auto; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.result { font-size: 13px; color: var(--accent); min-height: 1.4em; margin: 0; }
+
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.flow .node { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--paper); display: grid; gap: 4px; }
+.flow .node b { font-size: 13px; }
+.flow .node span { font-size: 12px; color: var(--muted); }
+.flow .node .mono { font-size: 11.5px; color: var(--accent); }
+.compare { display: grid; gap: 0; }
+.compare div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.compare div:first-child { border-top: 0; }
+.compare dt { color: var(--muted); margin: 0; }
+.compare dd { margin: 0; }
+@media (max-width: 560px) { .compare div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--paper); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
+.login { max-width: 420px; margin: 80px auto; }
+.loading { padding: 60px 0; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .talk { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>LINE配信ラボ</h1>
+      <p>Cloudflare Workers + D1 だけで動く、ステップ配信・タグ・自動応答</p>
+    </div>
+    <div class="spacer"></div>
+    <span id="mode" class="pill dry" hidden></span>
+    <div class="clock" id="clock" hidden>いま <strong class="mono" id="clock-now"></strong></div>
+  </header>
+
+  <div id="login" class="section login" hidden>
+    <h2>管理トークンを入力</h2>
+    <p class="lead">Worker の環境変数 <span class="mono">ADMIN_TOKEN</span> に設定した値です。</p>
+    <form id="login-form" class="inline">
+      <input id="token" type="password" autocomplete="current-password" class="field" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)">
+      <button class="btn primary">開く</button>
+    </form>
+  </div>
+
+  <div id="loading" class="loading">読み込み中…</div>
+
+  <div id="main" class="layout" hidden>
+    <!-- テスト用トーク -->
+    <aside class="phone" aria-label="テスト用トーク画面">
+      <div class="phone-head">
+        <div class="row">
+          <label for="sim-user">テストユーザー</label>
+          <select id="sim-user"></select>
+        </div>
+        <div class="row" id="sim-actions">
+          <button class="btn small" id="sim-new">＋ 新しい人で友だち追加</button>
+          <button class="btn small" id="sim-follow">友だち追加</button>
+          <button class="btn small" id="sim-block">ブロック</button>
+        </div>
+      </div>
+      <div class="talk" id="talk"></div>
+      <div class="quick" id="quick" hidden></div>
+      <form class="compose" id="compose">
+        <input id="compose-text" placeholder="メッセージを送る（例：資料）" autocomplete="off">
+        <button class="btn primary">送信</button>
+      </form>
+      <div class="timebar" id="timebar">
+        <span>時間を進める</span>
+        <button class="btn small" data-adv="60">+1時間</button>
+        <button class="btn small" data-adv="1440">+1日</button>
+        <button class="btn small" data-adv="4320">+3日</button>
+      </div>
+    </aside>
+
+    <!-- 管理画面 -->
+    <main class="admin">
+      <nav class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-tab="overview" aria-selected="true">概要</button>
+        <button role="tab" data-tab="friends" aria-selected="false">友だち</button>
+        <button role="tab" data-tab="steps" aria-selected="false">ステップ配信</button>
+        <button role="tab" data-tab="keywords" aria-selected="false">キーワード応答</button>
+        <button role="tab" data-tab="broadcast" aria-selected="false">一斉配信</button>
+        <button role="tab" data-tab="how" aria-selected="false">しくみ</button>
+      </nav>
+
+      <section class="panel" data-panel="overview">
+        <div class="stats" id="stats"></div>
+        <div class="section">
+          <h2>今月の通数（プッシュ配信）</h2>
+          <p class="lead">返信（reply）は無料、プッシュと一斉配信は通数にカウントされます。LINEの無料プラン（コミュニケーションプラン）は月200通までです。</p>
+          <div class="quota" id="quota"></div>
+        </div>
+        <div class="section">
+          <h2>タグ別の人数</h2>
+          <div class="tagbars" id="tagbars"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="friends" hidden>
+        <div class="section">
+          <h2>友だち一覧</h2>
+          <p class="lead">行をクリックすると左のトーク画面に切り替わります。タグはここで手動でも付けられます。</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>名前</th><th>状態</th><th>タグ</th><th>登録</th></tr></thead>
+            <tbody id="friends-body"></tbody>
+          </table></div>
+        </div>
+        <div class="section">
+          <h2 id="push-title">個別メッセージ</h2>
+          <form id="push-form" class="inline">
+            <input id="push-text" class="field" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)" placeholder="{name}さん、こんにちは！">
+            <button class="btn primary">送信</button>
+          </form>
+          <p class="hint">選択中の友だちにプッシュで送ります（1通カウント）。<span class="mono">{name}</span> は表示名に置き換わります。</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="steps" hidden>
+        <div id="scenarios"></div>
+        <div class="section">
+          <h2>ステップを追加</h2>
+          <form id="step-form" class="grid">
+            <div class="field">
+              <label for="step-scenario">シナリオ</label>
+              <select id="step-scenario"></select>
+            </div>
+            <div class="field">
+              <label for="step-offset">登録から</label>
+              <div class="inline">
+                <input id="step-offset" type="number" min="0" value="5" class="mono">
+                <select id="step-unit"><option value="1">分後</option><option value="60">時間後</option><option value="1440" selected>日後</option></select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="step-req">このタグがある人だけ</label>
+              <input id="step-req" list="tag-list" placeholder="（指定なし）">
+            </div>
+            <div class="field">
+              <label for="step-exc">このタグがある人は除く</label>
+              <input id="step-exc" list="tag-list" placeholder="（指定なし）">
+            </div>
+            <div class="field full">
+              <label for="step-msg">メッセージ</label>
+              <textarea id="step-msg" required>{name}さん、登録から5日たちました。</textarea>
+            </div>
+            <div class="full inline" style="align-items:center">
+              <button class="btn primary">追加</button>
+              <p class="hint">すでに登録済みの人にも、まだ時間が来ていなければ届きます。</p>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="keywords" hidden>
+        <div class="section">
+          <h2>キーワード自動応答</h2>
+          <p class="lead">受信したメッセージに上から順に照合し、最初に当たったルールで返信します。返信は無料です。</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>キーワード</th><th>一致</th><th>返信</th><th>付けるタグ</th><th></th></tr></thead>
+            <tbody id="kw-body"></tbody>
+          </table></div>
+        </div>
+        <div class="section">
+          <h2>ルールを追加</h2>
+          <form id="kw-form" class="grid">
+            <div class="field"><label for="kw-word">キーワード</label><input id="kw-word" required value="セミナー"></div>
+            <div class="field"><label for="kw-match">一致の仕方</label><select id="kw-match"><option value="contains">含む</option><option value="exact">完全一致</option></select></div>
+            <div class="field"><label for="kw-tag">付けるタグ</label><input id="kw-tag" list="tag-list" value="セミナー希望"></div>
+            <div class="field full"><label for="kw-reply">返信メッセージ</label><textarea id="kw-reply">{name}さん、セミナーの日程はこちらです📅
+https://example.com/seminar</textarea></div>
+            <div class="full"><button class="btn primary">追加</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="broadcast" hidden>
+        <div class="section">
+          <h2>一斉配信・セグメント配信</h2>
+          <form id="bc-form" class="grid">
+            <div class="field"><label for="bc-tag">送る相手</label><select id="bc-tag"></select></div>
+            <div class="field"><label for="bc-exc">除外するタグ</label><select id="bc-exc"></select></div>
+            <div class="field full"><label for="bc-msg">メッセージ</label><textarea id="bc-msg" required>新しいブログ記事を公開しました！
+https://example.com/new-post</textarea></div>
+            <div class="full inline" style="align-items:center">
+              <button class="btn primary">配信する</button>
+              <p class="result" id="bc-result"></p>
+            </div>
+          </form>
+          <p class="hint">本文に <span class="mono">{name}</span> がなければ multicast（500人ずつまとめて送信）、あれば1人ずつ push します。どちらも人数分の通数がかかります。</p>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="how" hidden>
+        <div class="section">
+          <h2>Cloudflareだけで動くしくみ</h2>
+          <p class="lead">Lステップなどのツールは、LINE公式の Messaging API の上に「友だちのデータベース」と「時間になったら送る仕組み」を載せたものです。その2つを Cloudflare の無料枠で用意すると、同じことが自前でできます。</p>
+          <div class="flow">
+            <div class="node"><b>LINE公式アカウント</b><span>友だち追加・メッセージ・ボタンのタップが届く</span><span class="mono">Messaging API</span></div>
+            <div class="node"><b>Workers</b><span>Webhookを受けてタグ付け・自動返信。管理画面もここから配信</span><span class="mono">POST /webhook</span></div>
+            <div class="node"><b>D1（SQLite）</b><span>友だち・タグ・シナリオ・送信履歴を保存</span><span class="mono">friends / tags / …</span></div>
+            <div class="node"><b>Cron Triggers</b><span>毎分起動して、時間が来たステップをプッシュ</span><span class="mono">* * * * *</span></div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>有料ツールとの違い</h2>
+          <dl class="compare">
+            <div><dt>月額</dt><dd>Cloudflare は無料枠で始められる。LINE側の通数料金はどちらでも同じようにかかる</dd></div>
+            <div><dt>データの持ち主</dt><dd>タグや履歴は自分の D1 にあるので、SQLで書き出せる。ツールの乗り換えでタグを失う問題がない</dd></div>
+            <div><dt>自分で用意するもの</dt><dd>フォーム・予約・決済連携・リッチメニュー切り替え・権限管理・障害対応などは自作か、既存のOSSを使う</dd></div>
+            <div><dt>このデモの範囲</dt><dd>友だち管理、タグ、条件分岐つきステップ配信、キーワード応答、ボタン（postback）でのタグ付け、セグメント配信</dd></div>
+          </dl>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<datalist id="tag-list"></datalist>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  let demoFetch = null;
+  let token = store.get('lab-token') || '';
+  const state = { stats: null, friends: [], selected: null, dryRun: false, tab: 'overview' };
+
+  async function api(method, path, body) {
+    const init = { method, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (demoFetch ? 'demo' : token) } };
+    if (body !== undefined) init.body = JSON.stringify(body);
+    const res = demoFetch ? await demoFetch('/api' + path, init) : await fetch('/api' + path, init);
+    if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+  }
+
+  function toast(text) {
+    const t = $('#toast');
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  const fmt = (ms) => {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const offsetLabel = (m) => {
+    if (m === 0) return '登録直後';
+    if (m % 1440 === 0) return `${m / 1440}日後`;
+    if (m % 60 === 0) return `${m / 60}時間後`;
+    return `${m}分後`;
+  };
+  const msgText = (b) => b.type === 'text' ? b.text : `[${b.type}]`;
+  const friendName = (f) => f?.display_name || f?.user_id?.slice(0, 10) || '';
+
+  // ---------- 描画 ----------
+  function renderStats() {
+    const s = state.stats;
+    const by = Object.fromEntries(s.sent.map((r) => [r.via, r.n]));
+    const paid = (by.push || 0) + (by.multicast || 0);
+    $('#stats').innerHTML = [
+      ['友だち', s.friends, 'ブロック中を除く'],
+      ['ブロック', s.blocked, ''],
+      ['返信（無料）', by.reply || 0, '自動応答・登録直後のステップ'],
+      ['プッシュ（通数）', paid, 'ステップ・個別・一斉配信'],
+    ].map(([l, v, n]) => `<div class="stat"><span class="label">${l}</span><span class="value">${v}</span><span class="note">${n}</span></div>`).join('');
+    const pct = Math.min(100, (paid / 200) * 100);
+    $('#quota').innerHTML = `<div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="legend"><span class="mono">${paid} / 200 通</span><span>超えるとライトプラン（月5,000円・5,000通）が必要</span></div>`;
+    const max = Math.max(1, ...s.tags.map((t) => t.n));
+    $('#tagbars').innerHTML = s.tags.length
+      ? s.tags.map((t) => `<div class="tagbar"><span class="chip">${esc(t.name)}</span><span class="track"><i style="width:${(t.n / max) * 100}%"></i></span><span class="mono">${t.n}</span></div>`).join('')
+      : '<p class="hint">まだタグはありません。トーク画面でボタンを押したり「資料」と送ると付きます。</p>';
+    $('#tag-list').innerHTML = s.tags.map((t) => `<option value="${esc(t.name)}">`).join('');
+    const opts = '<option value="">全員</option>' + s.tags.map((t) => `<option value="${esc(t.name)}">「${esc(t.name)}」がある人</option>`).join('');
+    const keep = [$('#bc-tag').value, $('#bc-exc').value];
+    $('#bc-tag').innerHTML = opts;
+    $('#bc-exc').innerHTML = '<option value="">なし</option>' + s.tags.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+    $('#bc-tag').value = keep[0]; $('#bc-exc').value = keep[1];
+    $('#mode').hidden = false;
+    $('#mode').className = 'pill ' + (s.dryRun ? 'dry' : 'live');
+    $('#mode').textContent = s.dryRun ? 'テストモード：LINEには送信しません' : '本番：LINEに送信します';
+    $('#clock').hidden = false;
+    $('#clock-now').textContent = fmt(s.now);
+  }
+
+  function renderFriends() {
+    $('#friends-body').innerHTML = state.friends.map((f) => `
+      <tr class="clickable ${f.user_id === state.selected ? 'sel' : ''}" data-user="${esc(f.user_id)}">
+        <td>${esc(friendName(f))}</td>
+        <td class="${f.status === 'active' ? 'status-active' : 'status-blocked'}">${f.status === 'active' ? '有効' : 'ブロック'}</td>
+        <td><div class="tags-cell">${f.tags.map((t) => `<span class="chip">${esc(t)}<button data-untag="${esc(t)}" aria-label="${esc(t)}を外す">×</button></span>`).join('')}
+          <input data-addtag list="tag-list" placeholder="＋タグ" aria-label="タグを追加"></div></td>
+        <td class="mono">${fmt(f.followed_at)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" class="hint">まだ友だちがいません。</td></tr>';
+    const sel = $('#sim-user');
+    sel.innerHTML = state.friends.map((f) => `<option value="${esc(f.user_id)}">${esc(friendName(f))}${f.status === 'blocked' ? '（ブロック中）' : ''}</option>`).join('');
+    if (state.selected) sel.value = state.selected;
+    const cur = state.friends.find((f) => f.user_id === state.selected);
+    $('#push-title').textContent = cur ? `個別メッセージ（${friendName(cur)}さんへ）` : '個別メッセージ';
+    $('#sim-follow').disabled = !cur || cur.status === 'active';
+    $('#sim-block').disabled = !cur || cur.status !== 'active';
+  }
+
+  async function renderTalk() {
+    const talk = $('#talk');
+    const quick = $('#quick');
+    if (!state.selected) {
+      talk.innerHTML = '<p class="empty-talk">「新しい人で友だち追加」を押すと、登録直後のメッセージが届きます。</p>';
+      quick.hidden = true; return;
+    }
+    const msgs = await api('GET', `/friends/${encodeURIComponent(state.selected)}/messages`);
+    let lastQuick = null;
+    talk.innerHTML = msgs.map((m) => {
+      const b = m.body;
+      if (b.type === 'follow') return `<div class="sys">${fmt(m.created_at)} 友だち追加</div>`;
+      if (b.type === 'unfollow') return `<div class="sys">${fmt(m.created_at)} ブロック</div>`;
+      if (m.direction === 'in') {
+        const text = b.type === 'postback' ? (b.displayText || `（ボタン：${b.data}）`) : msgText(b);
+        lastQuick = null;
+        return `<div class="msg in"><div class="bubble">${esc(text)}</div><div class="meta"><span>${fmt(m.created_at)}</span></div></div>`;
+      }
+      lastQuick = b.quickReply ? b.quickReply.items : null;
+      const free = m.via === 'reply';
+      return `<div class="msg out"><div class="bubble">${esc(msgText(b))}</div>
+        <div class="meta"><span class="via ${free ? 'free' : 'paid'}">${free ? 'reply・無料' : m.via + '・1通'}</span><span>${fmt(m.created_at)}</span></div></div>`;
+    }).join('') || '<p class="empty-talk">まだメッセージはありません。</p>';
+    talk.scrollTop = talk.scrollHeight;
+    const cur = state.friends.find((f) => f.user_id === state.selected);
+    if (lastQuick && cur?.status === 'active') {
+      quick.hidden = false;
+      quick.innerHTML = lastQuick.map((it, i) => `<button data-q="${i}">${esc(it.action.label)}</button>`).join('');
+      quick.onclick = async (e) => {
+        const btn = e.target.closest('[data-q]');
+        if (!btn) return;
+        const a = lastQuick[Number(btn.dataset.q)].action;
+        if (a.type === 'postback') await sim({ type: 'postback', data: a.data, displayText: a.displayText || a.label });
+        else await sim({ type: 'message', text: a.text || a.label });
+      };
+    } else {
+      quick.hidden = true;
+    }
+  }
+
+  async function renderScenarios() {
+    const list = await api('GET', '/scenarios');
+    $('#step-scenario').innerHTML = list.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    $('#scenarios').innerHTML = list.map((s) => `
+      <div class="section">
+        <h2>シナリオ「${esc(s.name)}」</h2>
+        <p class="lead">${s.trigger === 'follow' ? '友だち追加で自動的に開始' : 'キーワードやボタンから開始'}・登録者 <span class="mono">${s.enrolled}</span> 人。時間は「登録してから」の経過で数えます。</p>
+        <div class="steps">${s.steps.map((st) => {
+          let preview = st.message;
+          try { if (preview.trim().startsWith('{')) { const j = JSON.parse(preview); preview = (j.text || `[${j.type}]`) + (j.quickReply ? '\n［ボタン：' + j.quickReply.items.map((i) => i.action.label).join(' / ') + '］' : ''); } } catch {}
+          return `<div class="step">
+            <div class="when">${offsetLabel(st.offset_minutes)}</div>
+            <div class="body"><div class="text">${esc(preview)}</div>
+              <div class="conds">${st.require_tag ? `<span class="chip req">「${esc(st.require_tag)}」がある人だけ</span>` : ''}${st.exclude_tag ? `<span class="chip exc">「${esc(st.exclude_tag)}」の人は除く</span>` : ''}${!st.require_tag && !st.exclude_tag ? '全員' : ''}<span>・送信済み <span class="mono">${st.sent}</span></span></div></div>
+            <button class="btn ghost small" data-delstep="${st.id}" aria-label="このステップを削除">削除</button>
+          </div>`;
+        }).join('')}</div>
+      </div>`).join('');
+  }
+
+  async function renderKeywords() {
+    const list = await api('GET', '/keywords');
+    $('#kw-body').innerHTML = list.map((k) => `<tr>
+      <td><b>${esc(k.keyword)}</b></td><td>${k.match_type === 'exact' ? '完全一致' : '含む'}</td>
+      <td style="white-space:pre-wrap;min-width:200px">${esc(k.reply || '')}</td>
+      <td>${k.add_tag ? `<span class="chip">${esc(k.add_tag)}</span>` : ''}</td>
+      <td><button class="btn ghost small" data-delkw="${k.id}">削除</button></td></tr>`).join('');
+  }
+
+  async function refresh() {
+    const [stats, friends] = await Promise.all([api('GET', '/stats'), api('GET', '/friends')]);
+    state.stats = stats; state.friends = friends; state.dryRun = stats.dryRun;
+    if (!state.selected || !friends.some((f) => f.user_id === state.selected)) state.selected = friends[0]?.user_id || null;
+    $('#sim-actions').hidden = !stats.dryRun;
+    $('#timebar').hidden = !stats.dryRun;
+    $('#compose').hidden = !stats.dryRun;
+    renderStats(); renderFriends();
+    await renderTalk();
+    if (state.tab === 'steps') await renderScenarios();
+    if (state.tab === 'keywords') await renderKeywords();
+  }
+
+  // ---------- 操作 ----------
+  async function sim(ev) {
+    if (!state.selected && ev.type !== 'follow') return;
+    await api('POST', '/sim/event', { userId: state.selected, ...ev });
+    await refresh();
+  }
+
+  let seq = 1;
+  const names = ['ゆい', 'たくみ', 'みお', 'そうた', 'はな', 'りく'];
+  $('#sim-new').onclick = async () => {
+    const used = new Set(state.friends.map((f) => f.display_name));
+    const name = names.find((n) => !used.has(n)) || `テスト${seq}`;
+    const id = 'U_test_' + Date.now().toString(36) + (seq++);
+    await api('POST', '/sim/event', { type: 'follow', userId: id, displayName: name });
+    state.selected = id;
+    await refresh();
+    toast(`${name}さんが友だち追加しました`);
+  };
+  $('#sim-follow').onclick = () => sim({ type: 'follow' });
+  $('#sim-block').onclick = () => sim({ type: 'unfollow' });
+  $('#sim-user').onchange = async (e) => { state.selected = e.target.value; renderFriends(); await renderTalk(); };
+  $('#compose').onsubmit = async (e) => {
+    e.preventDefault();
+    const text = $('#compose-text').value.trim();
+    if (!text) return;
+    $('#compose-text').value = '';
+    await sim({ type: 'message', text });
+  };
+  $('#timebar').onclick = async (e) => {
+    const b = e.target.closest('[data-adv]');
+    if (!b) return;
+    const r = await api('POST', '/sim/advance', { minutes: Number(b.dataset.adv) });
+    await refresh();
+    toast(r.pushes ? `${b.textContent.replace('+', '')}進めました。${r.users}人にステップを配信` : `${b.textContent.replace('+', '')}進めました。この間に届くステップはありません`);
+  };
+
+  $('#tabs').onclick = async (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (!b) return;
+    state.tab = b.dataset.tab;
+    document.querySelectorAll('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== state.tab; });
+    if (state.tab === 'steps') await renderScenarios();
+    if (state.tab === 'keywords') await renderKeywords();
+  };
+
+  $('#friends-body').onclick = async (e) => {
+    const un = e.target.closest('[data-untag]');
+    const row = e.target.closest('[data-user]');
+    if (!row) return;
+    if (un) {
+      await api('DELETE', `/friends/${encodeURIComponent(row.dataset.user)}/tags/${encodeURIComponent(un.dataset.untag)}`);
+      return refresh();
+    }
+    if (e.target.matches('input')) return;
+    state.selected = row.dataset.user;
+    renderFriends(); await renderTalk();
+  };
+  $('#friends-body').onkeydown = async (e) => {
+    if (e.key !== 'Enter' || !e.target.matches('[data-addtag]')) return;
+    const tag = e.target.value.trim();
+    if (!tag) return;
+    await api('POST', `/friends/${encodeURIComponent(e.target.closest('[data-user]').dataset.user)}/tags`, { tag });
+    await refresh();
+  };
+  $('#push-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const message = $('#push-text').value.trim();
+    if (!message || !state.selected) return;
+    await api('POST', `/friends/${encodeURIComponent(state.selected)}/push`, { message });
+    $('#push-text').value = '';
+    await refresh(); toast('送信しました');
+  };
+
+  $('#scenarios').onclick = async (e) => {
+    const b = e.target.closest('[data-delstep]');
+    if (!b) return;
+    await api('DELETE', `/steps/${b.dataset.delstep}`);
+    await renderScenarios(); toast('ステップを削除しました');
+  };
+  $('#step-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await api('POST', `/scenarios/${$('#step-scenario').value}/steps`, {
+      offset_minutes: Number($('#step-offset').value) * Number($('#step-unit').value),
+      message: $('#step-msg').value,
+      require_tag: $('#step-req').value.trim(),
+      exclude_tag: $('#step-exc').value.trim(),
+    });
+    await renderScenarios(); toast('ステップを追加しました');
+  };
+
+  $('#kw-body').onclick = async (e) => {
+    const b = e.target.closest('[data-delkw]');
+    if (!b) return;
+    await api('DELETE', `/keywords/${b.dataset.delkw}`);
+    await renderKeywords();
+  };
+  $('#kw-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await api('POST', '/keywords', { keyword: $('#kw-word').value.trim(), match_type: $('#kw-match').value, reply: $('#kw-reply').value, add_tag: $('#kw-tag').value.trim() });
+    await renderKeywords(); toast(`「${$('#kw-word').value}」のルールを追加しました`);
+  };
+
+  $('#bc-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const r = await api('POST', '/broadcast', { message: $('#bc-msg').value, tag: $('#bc-tag').value, exclude_tag: $('#bc-exc').value });
+    $('#bc-result').textContent = `${r.recipients}人に配信しました（${r.recipients}通）`;
+    await refresh();
+  };
+
+  // ---------- 起動 ----------
+  function showLogin() {
+    $('#loading').hidden = true; $('#main').hidden = true; $('#login').hidden = false;
+  }
+  $('#login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    token = $('#token').value; store.set('lab-token', token);
+    $('#login').hidden = true;
+    await start();
+  };
+
+  async function start() {
+    try {
+      await refresh();
+      $('#loading').hidden = true; $('#main').hidden = false;
+      if (!demoFetch && !state.dryRun) setInterval(() => refresh().catch(() => {}), 10000);
+    } catch (err) {
+      if (err.message !== 'unauthorized') { $('#loading').textContent = '読み込めませんでした：' + err.message; }
+    }
+  }
+
+  window.addEventListener('error', (e) => { toast('エラー：' + e.message); });
+  window.addEventListener('unhandledrejection', (e) => { if (e.reason?.message !== 'unauthorized') toast('エラー：' + (e.reason?.message || e.reason)); });
+
+  if (window.__DEMO__) {
+    window.__DEMO__.then((f) => { demoFetch = f; start(); }, (err) => { $('#loading').textContent = 'デモを起動できませんでした：' + err.message; });
+  } else if (!token) {
+    showLogin();
+  } else {
+    start();
+  }
+})();
+</script>

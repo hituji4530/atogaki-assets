@@ -1,0 +1,21 @@
+name = "line-cloudflare"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# 管理画面（public/index.html）を同じ Worker から配信
+[assets]
+directory = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "line-cloudflare"
+database_id = "00000000-0000-0000-0000-000000000000" # `npx wrangler d1 create line-cloudflare` の結果に置き換える
+migrations_dir = "migrations"
+
+# 毎分ステップ配信をチェック
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+# 本番の LINE に送るときは "false" にする
+DRY_RUN = "true"
