@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from './env';
 import * as engine from './engine';
 import { isDryRun, verifySignature } from './line';
+import { jstMonth } from './schedule';
 
 export const app = new Hono<{ Bindings: Env }>();
 
@@ -37,7 +38,7 @@ api.get('/stats', async (c) => {
     db.prepare(`SELECT COUNT(*) AS n FROM friends WHERE status = 'active'`),
     db.prepare(`SELECT COUNT(*) AS n FROM friends WHERE status = 'blocked'`),
     db.prepare(`SELECT t.name, COUNT(ft.user_id) AS n FROM tags t LEFT JOIN friend_tags ft ON ft.tag_id = t.id GROUP BY t.id ORDER BY n DESC`),
-    db.prepare(`SELECT via, COUNT(*) AS n FROM messages WHERE direction = 'out' GROUP BY via`),
+    db.prepare(`SELECT via, n FROM stats_monthly WHERE ym = ?`).bind(jstMonth(await engine.now(c.env))),
   ]);
   return c.json({
     friends: (friends.results[0] as { n: number }).n,
@@ -46,6 +47,8 @@ api.get('/stats', async (c) => {
     sent: out.results,
     dryRun: isDryRun(c.env),
     now: await engine.now(c.env),
+    paused: (await engine.getSetting(c.env, 'paused')) === '1',
+    tokenStatus: (await engine.getSetting(c.env, 'line_token_status')) ?? 'ok',
   });
 });
 
@@ -85,8 +88,8 @@ api.get('/scenarios', async (c) => {
   const db = c.env.DB;
   const [sc, steps] = await db.batch([
     db.prepare(`SELECT s.*, (SELECT COUNT(*) FROM enrollments e WHERE e.scenario_id = s.id) AS enrolled FROM scenarios s ORDER BY id`),
-    db.prepare(`SELECT s.*, (SELECT COUNT(*) FROM step_deliveries d WHERE d.step_id = s.id AND d.result = 'sent') AS sent
-                  FROM scenario_steps s ORDER BY scenario_id, offset_minutes, id`),
+    db.prepare(`SELECT s.*, (SELECT COUNT(*) FROM deliveries d WHERE d.step_id = s.id AND d.status = 'sent') AS sent
+                  FROM scenario_steps s WHERE s.enabled = 1 ORDER BY scenario_id, offset_minutes, id`),
   ]);
   return c.json((sc.results as { id: number }[]).map((s) => ({
     ...s, steps: (steps.results as { scenario_id: number }[]).filter((st) => st.scenario_id === s.id),
@@ -100,15 +103,20 @@ api.post('/scenarios', async (c) => {
 });
 
 api.post('/scenarios/:id/steps', async (c) => {
-  const b = await c.req.json<{ offset_minutes: number; message: string; require_tag?: string; exclude_tag?: string }>();
-  await c.env.DB.prepare(
-    `INSERT INTO scenario_steps (scenario_id, offset_minutes, message, require_tag, exclude_tag, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-  ).bind(Number(c.req.param('id')), Number(b.offset_minutes) || 0, b.message, b.require_tag || null, b.exclude_tag || null, await engine.now(c.env)).run();
+  const b = await c.req.json<{ offset_minutes: number; message: string; require_tag?: string; exclude_tag?: string; at_time?: string }>();
+  const t = await engine.now(c.env);
+  const res = await c.env.DB.prepare(
+    `INSERT INTO scenario_steps (scenario_id, offset_minutes, message, require_tag, exclude_tag, at_time, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(Number(c.req.param('id')), Number(b.offset_minutes) || 0, b.message, b.require_tag || null, b.exclude_tag || null, b.at_time || null, t, t).run();
+  // 登録済みの人にも、これから届く分だけ予定を足す
+  await engine.enqueueStepForEnrolled(c.env, Number(res.meta.last_row_id));
   return c.json({ ok: true });
 });
 
 api.delete('/steps/:id', async (c) => {
-  await c.env.DB.prepare(`DELETE FROM scenario_steps WHERE id = ?`).bind(Number(c.req.param('id'))).run();
+  const id = Number(c.req.param('id'));
+  await engine.cancelStep(c.env, id);
+  await c.env.DB.prepare(`DELETE FROM scenario_steps WHERE id = ?`).bind(id).run();
   return c.json({ ok: true });
 });
 
@@ -138,6 +146,12 @@ api.post('/broadcast', async (c) => {
 // Cron を待たずにステップ配信を今すぐ実行
 api.post('/run-scheduled', async (c) => c.json(await engine.runScheduled(c.env)));
 
+// トークン無効などで止めた配信を再開する
+api.post('/resume', async (c) => {
+  await engine.resume(c.env);
+  return c.json({ ok: true });
+});
+
 // ---------- シミュレーター（DRY_RUN のときだけ） ----------
 api.use('/sim/*', async (c, next) => {
   if (!isDryRun(c.env)) return c.json({ error: 'DRY_RUN=true のときだけ使えます' }, 403);
@@ -162,7 +176,15 @@ api.post('/sim/event', async (c) => {
 api.post('/sim/advance', async (c) => {
   const { minutes } = await c.req.json<{ minutes: number }>();
   await engine.advanceClock(c.env, Number(minutes) || 0);
-  return c.json(await engine.runScheduled(c.env));
+  // 1回の Cron で処理する数には上限があるので、時間が来た分がなくなるまで回す
+  const total = { users: 0, pushes: 0 };
+  for (let i = 0; i < 50; i++) {
+    const r = await engine.runScheduled(c.env);
+    total.users += r.users;
+    total.pushes += r.pushes;
+    if (!r.processed || r.paused) break;
+  }
+  return c.json(total);
 });
 
 app.route('/api', api);

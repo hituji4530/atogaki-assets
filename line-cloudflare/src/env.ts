@@ -6,4 +6,6 @@ export interface Env {
   ADMIN_TOKEN: string;
   // "true" のあいだは LINE に送信せず、ログにだけ残す（シミュレーターと時計の早送りが使える）
   DRY_RUN?: string;
+  // 1回の Cron で処理する配信予定の上限（既定 10。無料プランのサブリクエスト上限50に収めるため。Workers Paid なら 100 程度まで上げてよい）
+  MAX_SENDS_PER_TICK?: string;
 }

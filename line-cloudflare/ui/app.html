@@ -187,6 +187,9 @@ form.grid .full { grid-column: 1 / -1; }
 .compare dd { margin: 0; }
 @media (max-width: 560px) { .compare div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
 
+.alert { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--warn-soft); color: var(--ink); border-radius: 12px; padding: 12px 16px; font-size: 13px; }
+.alert p { margin: 0; flex: 1; min-width: 220px; }
+.alert b { color: var(--warn); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--paper); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
 .login { max-width: 420px; margin: 80px auto; }
 .loading { padding: 60px 0; text-align: center; color: var(--muted); }
@@ -245,6 +248,10 @@ form.grid .full { grid-column: 1 / -1; }
 
     <!-- 管理画面 -->
     <main class="admin">
+      <div class="alert" id="paused" hidden>
+        <p><b>配信を一時停止しています。</b>LINEのアクセストークンが無効になった可能性があります。トークンを設定し直してから再開してください。止まっていた配信は、再開後に続きから送られます。</p>
+        <button class="btn primary" id="resume">配信を再開</button>
+      </div>
       <nav class="tabs" role="tablist" id="tabs">
         <button role="tab" data-tab="overview" aria-selected="true">概要</button>
         <button role="tab" data-tab="friends" aria-selected="false">友だち</button>
@@ -435,13 +442,14 @@ https://example.com/new-post</textarea></div>
   // ---------- 描画 ----------
   function renderStats() {
     const s = state.stats;
+    $('#paused').hidden = !s.paused;
     const by = Object.fromEntries(s.sent.map((r) => [r.via, r.n]));
     const paid = (by.push || 0) + (by.multicast || 0);
     $('#stats').innerHTML = [
       ['友だち', s.friends, 'ブロック中を除く'],
       ['ブロック', s.blocked, ''],
-      ['返信（無料）', by.reply || 0, '自動応答・登録直後のステップ'],
-      ['プッシュ（通数）', paid, 'ステップ・個別・一斉配信'],
+      ['今月の返信（無料）', by.reply || 0, '自動応答・登録直後のステップ'],
+      ['今月のプッシュ（通数）', paid, 'ステップ・個別・一斉配信'],
     ].map(([l, v, n]) => `<div class="stat"><span class="label">${l}</span><span class="value">${v}</span><span class="note">${n}</span></div>`).join('');
     const pct = Math.min(100, (paid / 200) * 100);
     $('#quota').innerHTML = `<div class="bar"><i style="width:${pct}%"></i></div>
@@ -596,7 +604,12 @@ https://example.com/new-post</textarea></div>
     if (!b) return;
     const r = await api('POST', '/sim/advance', { minutes: Number(b.dataset.adv) });
     await refresh();
-    toast(r.pushes ? `${b.textContent.replace('+', '')}進めました。${r.users}人にステップを配信` : `${b.textContent.replace('+', '')}進めました。この間に届くステップはありません`);
+    toast(r.pushes ? `${b.textContent.replace('+', '')}進めました。${r.users}人にステップを配信` : `${b.textContent.replace('+', '')}進めました。この間に届くステップはありません（夜21時〜朝9時になる配信は翌朝9時に回ります）`);
+  };
+
+  $('#resume').onclick = async () => {
+    await api('POST', '/resume');
+    await refresh(); toast('配信を再開しました');
   };
 
   $('#tabs').onclick = async (e) => {
@@ -688,7 +701,8 @@ https://example.com/new-post</textarea></div>
     try {
       await refresh();
       $('#loading').hidden = true; $('#main').hidden = false;
-      if (!demoFetch && !state.dryRun) setInterval(() => refresh().catch(() => {}), 10000);
+      // 本番は定期的に読み直さない（読み取り量を抑えるため）。タブに戻ってきたときだけ最新にする
+      if (!demoFetch) document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh().catch(() => {}); });
     } catch (err) {
       if (err.message !== 'unauthorized') { $('#loading').textContent = '読み込めませんでした：' + err.message; }
     }

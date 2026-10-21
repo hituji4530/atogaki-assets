@@ -25,13 +25,25 @@ Cloudflare の Workers（サーバー）・D1（データベース）・Cron Tri
 
 通数を節約する工夫：登録直後のステップや自動応答は **reply（無料）** で返し、同じ人に同時に届くステップは1回の push にまとめています。
 
+### 配信の仕組み（配信キュー）
+
+友だちがシナリオに登録した時点で、全ステップ分の「配信予定」を `deliveries` テーブルに積みます。毎分の Cron は「時間が来た予定」だけを読むので、友だちが増えてもデータベースの読み取りはほとんど増えません（友だち1,000人で、Cron 1回あたり旧方式 14,733行 → 新方式 1〜4行。ローカルの D1 で計測）。
+
+- 夜21時〜朝9時になる配信は、翌朝9時に回します（`settings.delivery_window`、既定 `09:00-21:00`）
+- 送信に失敗したら 1分→5分→30分→2時間→6時間 の間隔で送り直します。LINE の再送キー（`X-Line-Retry-Key`）を付けるので二重には届きません
+- アクセストークンが無効（401/403）になったら配信を一時停止し、管理画面に「配信を再開」ボタンが出ます。止まっていた分は再開後に続きから送ります
+- 改修の全体像は `docs/production-design.md`
+
 ## ファイル
 
 - `src/app.ts` … Webhook と管理 API（Hono）
 - `src/engine.ts` … タグ・ステップ配信・キーワード応答・一斉配信の本体
+- `src/schedule.ts` … 配信時刻（配信時間帯・時刻指定）と再送間隔の計算
 - `src/line.ts` … Messaging API クライアントと署名検証
 - `src/index.ts` … Worker の入口（fetch と Cron）
 - `migrations/0001_init.sql` … テーブル定義とサンプルのシナリオ・キーワード
+- `migrations/0002_delivery_queue.sql` … 配信キューへの切り替え（既存データも移行）
+- `test/` … 配信ロジックのテスト（`npm test`。本番と同じマイグレーションを SQLite に流し、LINE API は偽物に差し替え）
 - `ui/app.html` … 管理画面（`npm run build` で `public/index.html` に出力）
 - `demo/` … 同じコードをブラウザ内（sql.js）で動かす単体デモ（`npm run build:demo` で `dist/demo.html`）
 

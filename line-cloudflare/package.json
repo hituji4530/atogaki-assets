@@ -9,7 +9,8 @@
     "dev": "npm run build && wrangler dev --test-scheduled",
     "typecheck": "tsc",
     "db:init": "wrangler d1 migrations apply line-cloudflare --remote",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test": "vitest run"
   },
   "dependencies": {
     "hono": "^4.13.13"
@@ -19,6 +20,7 @@
     "esbuild": "^0.28.2",
     "sql.js": "^1.10.3",
     "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
     "wrangler": "^4.151.3"
   },
   "private": true,

@@ -2,7 +2,7 @@
 import { app } from '../src/app';
 import type { Env } from '../src/env';
 import { createD1 } from './d1-sqljs';
-import schema from '../migrations/0001_init.sql';
+import schema from 'virtual:schema';
 
 // line-builder スキルが差し込む設計（なければ同梱のサンプルで起動）
 type Design = { account?: string; sql: string; firstFriend?: string };

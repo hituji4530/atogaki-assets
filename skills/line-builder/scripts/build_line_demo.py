@@ -95,6 +95,7 @@ def q(v):
 def build_sql(design):
     lines = [
         '-- line-builder で生成した設計データ（初期構築用：既存のシナリオ・キーワード・配信進行をリセットします）',
+        'DELETE FROM deliveries;',
         'DELETE FROM step_deliveries;',
         'DELETE FROM enrollments;',
         'DELETE FROM scenario_steps;',
